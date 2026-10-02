@@ -741,8 +741,10 @@
         android.splashReady();
         setTimeout(start, 4000); // don't wait forever if the signal never comes
       } else {
-        // Two frames later the splash has been painted.
+        // Two frames later the splash has been painted. A tab opened in the background
+        // draws no frames, so the timer starts the app anyway.
         requestAnimationFrame(() => requestAnimationFrame(start));
+        setTimeout(start, 1500);
       }
     });
   }
