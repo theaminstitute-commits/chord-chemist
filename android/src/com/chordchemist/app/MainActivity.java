@@ -1,0 +1,99 @@
+package com.chordchemist.app;
+
+import android.app.Activity;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.os.Build;
+import android.os.Bundle;
+import android.view.DisplayCutout;
+import android.view.View;
+import android.view.Window;
+import android.view.WindowInsets;
+import android.view.WindowInsetsController;
+import android.webkit.JavascriptInterface;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+
+/** Full-screen WebView around the single-file app in assets/index.html. */
+public class MainActivity extends Activity {
+    private WebView web;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        // Walnut from the first frame, so there's no grey flash before the loading screen draws.
+        getWindow().setBackgroundDrawable(new ColorDrawable(Color.parseColor("#140D08")));
+        web = new WebView(this);
+        web.setBackgroundColor(Color.parseColor("#140D08"));
+        WebSettings s = web.getSettings();
+        s.setJavaScriptEnabled(true);
+        s.setDomStorageEnabled(true); // saved progressions
+        s.setMediaPlaybackRequiresUserGesture(false);
+        s.setTextZoom(100); // the layout is sized in CSS pixels; ignore the system font scale
+        web.setWebViewClient(new WebViewClient());
+        // The page asks to be told when its loading screen has actually reached the display,
+        // so the 2.5 s it stays up are all visible (WebView's first frame can lag the page).
+        web.addJavascriptInterface(new Object() {
+            @JavascriptInterface
+            public void splashReady() {
+                runOnUiThread(() -> web.postVisualStateCallback(1, new WebView.VisualStateCallback() {
+                    @Override
+                    public void onComplete(long requestId) {
+                        web.postOnAnimation(() -> web.postOnAnimation(() -> web.evaluateJavascript(
+                            "window.__splashOnScreen && window.__splashOnScreen()", null)));
+                    }
+                }));
+            }
+        }, "ChordChemistAndroid");
+        // Keep the app clear of camera cutouts when drawing edge to edge.
+        web.setOnApplyWindowInsetsListener((v, insets) -> {
+            int l = 0, t = 0, r = 0, b = 0;
+            if (Build.VERSION.SDK_INT >= 28) {
+                DisplayCutout c = insets.getDisplayCutout();
+                if (c != null) { l = c.getSafeInsetLeft(); t = c.getSafeInsetTop(); r = c.getSafeInsetRight(); b = c.getSafeInsetBottom(); }
+            }
+            v.setPadding(l, t, r, b);
+            return insets;
+        });
+        setContentView(web);
+        if (savedInstanceState != null) web.restoreState(savedInstanceState);
+        else web.loadUrl("file:///android_asset/index.html");
+        hideSystemBars();
+    }
+
+    private void hideSystemBars() {
+        Window w = getWindow();
+        if (Build.VERSION.SDK_INT >= 30) {
+            w.setDecorFitsSystemWindows(false);
+            WindowInsetsController c = w.getInsetsController();
+            if (c != null) {
+                c.hide(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
+                c.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+            }
+        } else {
+            w.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                | View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                | View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
+        }
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) hideSystemBars();
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle out) {
+        super.onSaveInstanceState(out);
+        web.saveState(out);
+    }
+
+    @Override
+    protected void onPause() { super.onPause(); web.onPause(); }
+
+    @Override
+    protected void onResume() { super.onResume(); web.onResume(); }
+}

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A chord box on an index card, inside the 66dp adaptive-icon safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#F6EED8" android:strokeColor="#6E531C" android:strokeWidth="1.2"
+        android:pathData="M31,27 L77,27 L77,81 L31,81 Z" />
+    <path android:strokeColor="#23190F" android:strokeWidth="3.5" android:pathData="M39,36 L69,36" />
+    <path android:strokeColor="#23190F" android:strokeWidth="1.3"
+        android:pathData="M39,45.5 L69,45.5 M39,55 L69,55 M39,64.5 L69,64.5 M39,74 L69,74 M39,36 L39,74 M45,36 L45,74 M51,36 L51,74 M57,36 L57,74 M63,36 L63,74 M69,36 L69,74" />
+    <path android:fillColor="#7C211A" android:pathData="M45,59.75 m-3.6,0 a3.6,3.6 0 1,0 7.2,0 a3.6,3.6 0 1,0 -7.2,0" />
+    <path android:fillColor="#23190F" android:pathData="M51,50.25 m-3.6,0 a3.6,3.6 0 1,0 7.2,0 a3.6,3.6 0 1,0 -7.2,0" />
+    <path android:fillColor="#23190F" android:pathData="M57,59.75 m-3.6,0 a3.6,3.6 0 1,0 7.2,0 a3.6,3.6 0 1,0 -7.2,0" />
+    <path android:fillColor="#23190F" android:pathData="M63,50.25 m-3.6,0 a3.6,3.6 0 1,0 7.2,0 a3.6,3.6 0 1,0 -7.2,0" />
+</vector>
