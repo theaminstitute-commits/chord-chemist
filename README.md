@@ -20,8 +20,8 @@ Voicings are generated systematically: 3 or 4 chord tones on a string set, every
 the neck, filtered to what a hand can reach, plus E- and A-form barres. "Smooth voicings"
 re-picks them so the hand moves as little as possible. Playback uses sampled jazz guitar
 (see samples/NOTICE.md), with a Karplus–Strong plucked-string synth as the alternative sound.
-The loading-screen art is a placeholder drawn by tools/placeholder-lab.py and dithered to four
-colours by tools/cga-splash.py.
+The loading-screen art is a placeholder drawn by tools/placeholder-lab.py (a dark and a light
+version, shown with the matching theme) and dithered to four colours by tools/cga-splash.py.
 
 ## Layout
 

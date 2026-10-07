@@ -194,7 +194,7 @@
     const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, width: big ? W * 1.05 : W * 1.3, class: 'diag', 'aria-hidden': 'true' });
     if (!v) return svg;
     const base = v.max <= 4 ? 1 : v.min;
-    const ink = 'var(--ink)';
+    const ink = 'var(--paper-ink)';
     for (let s = 0; s < 6; s++) el('line', { x1: left + s * cw, y1: top, x2: left + s * cw, y2: top + rh * frets, stroke: ink, 'stroke-width': big ? 1.2 : 0.7 }, svg);
     for (let f = 0; f <= frets; f++) {
       el('line', {
@@ -209,7 +209,7 @@
     v.frets.forEach((f, s) => {
       const x = left + s * cw;
       if (f < 0) {
-        const t = el('text', { x, y: top - (big ? 7 : 2.5), 'text-anchor': 'middle', 'font-size': big ? 14 : 6.5, fill: 'var(--ink-2)', 'font-family': 'var(--type)' }, svg);
+        const t = el('text', { x, y: top - (big ? 7 : 2.5), 'text-anchor': 'middle', 'font-size': big ? 14 : 6.5, fill: 'var(--paper-muted)', 'font-family': 'var(--type)' }, svg);
         t.textContent = '×';
       } else if (f === 0) {
         el('circle', { cx: x, cy: top - (big ? 11 : 4.5), r: big ? 5.5 : 2.3, fill: 'none', stroke: ink, 'stroke-width': big ? 1.4 : 0.8 }, svg);
@@ -218,11 +218,11 @@
         const isRoot = v.labels[s] === 'R';
         el('circle', {
           cx: x, cy: top + row * rh + rh / 2, r: big ? 9.5 : 3.4,
-          fill: isRoot ? 'var(--oxblood)' : ink,
+          fill: isRoot ? 'var(--paper-active)' : ink,
         }, svg);
       }
       if (labels && f >= 0) {
-        const t = el('text', { x, y: top + rh * frets + 19, 'text-anchor': 'middle', 'font-size': 13, fill: v.labels[s] === 'R' ? 'var(--oxblood)' : 'var(--ink-2)', 'font-family': 'var(--type)' }, svg);
+        const t = el('text', { x, y: top + rh * frets + 19, 'text-anchor': 'middle', 'font-size': 13, fill: v.labels[s] === 'R' ? 'var(--paper-active)' : 'var(--paper-muted)', 'font-family': 'var(--type)' }, svg);
         t.textContent = v.labels[s];
       }
     });
@@ -241,25 +241,20 @@
   function drawFretboard() {
     const svg = $('fretboard');
     svg.innerHTML = '';
-    const defs = el('defs', {}, svg);
-    const grad = el('linearGradient', { id: 'wood', x1: 0, y1: 0, x2: 0, y2: 1 }, defs);
-    el('stop', { offset: 0, 'stop-color': 'var(--rosewood-2)' }, grad);
-    el('stop', { offset: 0.5, 'stop-color': 'var(--rosewood)' }, grad);
-    el('stop', { offset: 1, 'stop-color': 'var(--rosewood-2)' }, grad);
-    el('rect', { x: FB.x0, y: FB.y0 - 12, width: FB.x1 - FB.x0, height: FB.y1 - FB.y0 + 24, fill: 'url(#wood)', rx: 2 }, svg);
+    el('rect', { x: FB.x0, y: FB.y0 - 12, width: FB.x1 - FB.x0, height: FB.y1 - FB.y0 + 24, rx: 3, fill: 'var(--wood)', stroke: 'var(--wood-edge)' }, svg);
     for (const f of [3, 5, 7, 9, 15]) {
-      el('circle', { cx: (fretX(f - 1) + fretX(f)) / 2, cy: (FB.y0 + FB.y1) / 2, r: 6, fill: 'var(--inlay)', opacity: 0.85 }, svg);
+      el('circle', { cx: (fretX(f - 1) + fretX(f)) / 2, cy: (FB.y0 + FB.y1) / 2, r: 6, fill: 'var(--marker)' }, svg);
     }
-    for (const dy of [-26, 26]) el('circle', { cx: (fretX(11) + fretX(12)) / 2, cy: (FB.y0 + FB.y1) / 2 + dy, r: 6, fill: 'var(--inlay)', opacity: 0.85 }, svg);
-    el('rect', { x: FB.x0 - 5, y: FB.y0 - 12, width: 7, height: FB.y1 - FB.y0 + 24, fill: '#efe5cf' }, svg);
+    for (const dy of [-26, 26]) el('circle', { cx: (fretX(11) + fretX(12)) / 2, cy: (FB.y0 + FB.y1) / 2 + dy, r: 6, fill: 'var(--marker)' }, svg);
+    el('rect', { x: FB.x0 - 5, y: FB.y0 - 12, width: 7, height: FB.y1 - FB.y0 + 24, fill: 'var(--nut)', stroke: 'var(--wood-edge)', 'stroke-width': 0.5 }, svg);
     for (let f = 1; f <= FB.frets; f++) {
-      el('line', { x1: fretX(f), y1: FB.y0 - 12, x2: fretX(f), y2: FB.y1 + 12, stroke: 'var(--fretwire)', 'stroke-width': 2.4 }, svg);
-      const t = el('text', { x: (fretX(f - 1) + fretX(f)) / 2, y: FB.y1 + 24, 'text-anchor': 'middle', 'font-size': 11, fill: 'var(--ink-2)', 'font-family': 'var(--type)' }, svg);
+      el('line', { x1: fretX(f), y1: FB.y0 - 12, x2: fretX(f), y2: FB.y1 + 12, stroke: 'var(--wire)', 'stroke-width': 2 }, svg);
+      const t = el('text', { x: (fretX(f - 1) + fretX(f)) / 2, y: FB.y1 + 24, 'text-anchor': 'middle', 'font-size': 11, fill: 'var(--muted)', 'font-family': 'var(--type)' }, svg);
       t.textContent = f;
     }
     ['E', 'A', 'D', 'G', 'B', 'e'].forEach((n, s) => {
-      el('line', { x1: FB.x0, y1: stringY(s), x2: FB.x1, y2: stringY(s), stroke: 'var(--string)', 'stroke-width': 2.4 - s * 0.28, opacity: 0.9 }, svg);
-      const t = el('text', { x: 6, y: stringY(s) + 4, 'font-size': 12, fill: 'var(--ink-2)', 'font-family': 'var(--type)' }, svg);
+      el('line', { x1: FB.x0, y1: stringY(s), x2: FB.x1, y2: stringY(s), stroke: 'var(--string)', 'stroke-width': 2.4 - s * 0.28 }, svg);
+      const t = el('text', { x: 6, y: stringY(s) + 4, 'font-size': 12, fill: 'var(--muted)', 'font-family': 'var(--type)' }, svg);
       t.textContent = n;
     });
     el('g', { id: 'fbNext' }, svg);
@@ -276,15 +271,15 @@
     if (nextV) {
       nextV.frets.forEach((f, s) => {
         if (f < 0) return;
-        el('circle', { cx: noteX(f), cy: stringY(s), r: 12, fill: 'none', stroke: 'var(--brass-hi)', 'stroke-width': 2, 'stroke-dasharray': '3 2.5' }, nx);
+        el('circle', { cx: noteX(f), cy: stringY(s), r: 12, fill: 'none', stroke: 'var(--accent)', 'stroke-width': 2, 'stroke-dasharray': '3 2.5', opacity: 0.85 }, nx);
       });
     }
     if (!v) return;
     v.frets.forEach((f, s) => {
       if (f < 0) return;
       const root = v.labels[s] === 'R';
-      el('circle', { cx: noteX(f), cy: stringY(s), r: 11.5, fill: root ? '#8e2a20' : '#f1e6cc', stroke: '#1d130b', 'stroke-width': 1.2 }, now);
-      const t = el('text', { x: noteX(f), y: stringY(s) + 4, 'text-anchor': 'middle', 'font-size': 11, fill: root ? '#f7ecd6' : '#23190f', 'font-family': 'var(--type)' }, now);
+      el('circle', { cx: noteX(f), cy: stringY(s), r: 11.5, fill: root ? 'var(--accent)' : 'var(--paper)', stroke: root ? 'var(--accent-2)' : 'var(--paper-ink)', 'stroke-width': 1.2 }, now);
+      const t = el('text', { x: noteX(f), y: stringY(s) + 4, 'text-anchor': 'middle', 'font-size': 11, fill: root ? 'var(--accent-text)' : 'var(--paper-ink)', 'font-family': 'var(--type)' }, now);
       t.textContent = v.labels[s];
     });
   }
@@ -678,6 +673,42 @@
     render();
     save();
   });
+
+  // ---------- theme ----------
+  // As in Guitar Reading Trainer: the choice is a data-theme attribute on <html>; "Auto" removes it
+  // so the device setting (prefers-color-scheme) decides. A change crossfades: the View Transitions
+  // API where the browser has it, otherwise a short colour transition (none with reduced motion).
+  const THEME_KEY = 'chord-chemist-theme';
+  function savedTheme() {
+    try {
+      const t = localStorage.getItem(THEME_KEY);
+      return t === 'light' || t === 'dark' ? t : 'system';
+    } catch (e) { return 'system'; }
+  }
+  function markTheme(choice) {
+    $('theme').querySelectorAll('[data-choice]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.choice === choice)));
+  }
+  function setTheme(choice) {
+    try { localStorage.setItem(THEME_KEY, choice); } catch (e) { /* storage unavailable */ }
+    const root = document.documentElement;
+    const apply = () => {
+      if (choice === 'system') delete root.dataset.theme;
+      else root.dataset.theme = choice;
+      markTheme(choice);
+    };
+    if (typeof document.startViewTransition === 'function') {
+      document.startViewTransition(apply);
+      return;
+    }
+    root.classList.add('theme-fade');
+    apply();
+    setTimeout(() => root.classList.remove('theme-fade'), 500);
+  }
+  $('theme').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-choice]');
+    if (b && b.getAttribute('aria-pressed') !== 'true') setTheme(b.dataset.choice);
+  });
+  markTheme(savedTheme());
 
   // ---------- boot ----------
 

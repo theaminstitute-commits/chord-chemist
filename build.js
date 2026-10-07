@@ -39,9 +39,11 @@ function samplesScript() {
 (async () => {
   const scripts = [samplesScript()].concat(['theory.js', 'voicings.js', 'audio.js', 'app.js']
     .map((f) => `<script>\n${read(f)}</script>`)).join('\n');
-  const splash = 'data:image/png;base64,' + fs.readFileSync(path.join(SRC, 'splash.png')).toString('base64');
+  const png = (f) => 'data:image/png;base64,' + fs.readFileSync(path.join(SRC, f)).toString('base64');
   const page = read('index.html').replace('<!--STYLE-->', `<style>\n${read('style.css')}</style>`)
-    .replace('<!--SPLASH-->', splash).replace('<!--SCRIPTS-->', scripts);
+    .replace('<!--SPLASH_DARK-->', png('splash-dark.png'))
+    .replace('<!--SPLASH_LIGHT-->', png('splash-light.png'))
+    .replace('<!--SCRIPTS-->', scripts);
   fs.mkdirSync(DIST, { recursive: true });
 
   let fontCss = '';

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android 8-9: a fixed full-screen theme. Android 10+ uses the day/night one in values-v29. -->
+    <style name="AppTheme" parent="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen" />
+</resources>

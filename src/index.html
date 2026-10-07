@@ -1,8 +1,15 @@
 <title>Chord Chemist</title>
+<script>
+  // Apply a saved Light/Dark choice before anything draws, so the page never flashes the other theme.
+  try { var t = localStorage.getItem('chord-chemist-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}
+</script>
 <!--FONTS-->
 <!--STYLE-->
 <div id="splash" class="splash" role="img" aria-label="Chord Chemist is loading: a chemistry bench with bubbling flasks and rising music notes, in four-colour pixel art">
-  <div class="crt"><img src="<!--SPLASH-->" alt="" width="104" height="109"></div>
+  <div class="crt">
+    <img class="art-dark" src="<!--SPLASH_DARK-->" alt="" width="104" height="109">
+    <img class="art-light" src="<!--SPLASH_LIGHT-->" alt="" width="104" height="109">
+  </div>
   <div class="splash-side">
     <p class="splash-title">CHORD <br>CHEMIST</p>
     <div class="splash-bar"><span></span></div>
@@ -11,13 +18,23 @@
 </div>
 <header class="plate">
   <div class="brand">
-    <h1>Chord Chemist</h1>
-    <p>a chord-progression workbench for guitar</p>
+    <span class="brand-mark" aria-hidden="true">C</span>
+    <div>
+      <h1>Chord Chemist</h1>
+      <p>a chord-progression workbench for guitar</p>
+    </div>
   </div>
   <div class="controls">
     <label class="field" for="tpl"><span>Progression</span><select id="tpl"></select></label>
     <label class="field" for="start"><span>Starting chord</span><select id="start"></select></label>
     <div class="field"><span>Key</span><div class="keyplate" id="keyplate">C major</div></div>
+    <div class="field"><span>Theme</span>
+      <div class="segmented compact" id="theme" role="group" aria-label="Theme">
+        <button class="seg" type="button" data-choice="system" aria-pressed="true">Auto</button>
+        <button class="seg" type="button" data-choice="light" aria-pressed="false">Light</button>
+        <button class="seg" type="button" data-choice="dark" aria-pressed="false">Dark</button>
+      </div>
+    </div>
   </div>
 </header>
 
@@ -25,9 +42,9 @@
   <section class="catalog panel" aria-label="Chord directory">
     <div class="drawer">
       <div class="drawer-plate"><strong id="dirTitle">Slot 1</strong><small id="dirSub"></small></div>
-      <div class="switch" role="group" aria-label="What to fill">
-        <button id="tMain" type="button" aria-pressed="true">Slot chord</button>
-        <button id="tSplit" type="button" aria-pressed="false">Passing chord ½</button>
+      <div class="segmented" role="group" aria-label="What to fill">
+        <button id="tMain" class="seg" type="button" aria-pressed="true">Slot chord</button>
+        <button id="tSplit" class="seg" type="button" aria-pressed="false">Passing chord ½</button>
       </div>
       <div class="tabs" id="tabs" role="group" aria-label="Directory"></div>
     </div>

@@ -1,18 +1,25 @@
-# Turns an image into 4-colour CGA-style pixel art in the app's palette (the loading screen).
+# Turns an image into 4-colour CGA-style pixel art (the loading-screen picture).
 # Runs under Calibre's bundled Python (it ships Qt, and this PC has no other Python):
-#   "C:\Program Files\Calibre2\calibre-debug.exe" -e tools\cga-splash.py -- art\placeholder-lab.png src\splash.png 104 --raw
+#   "C:\Program Files\Calibre2\calibre-debug.exe" -e tools\cga-splash.py -- art\placeholder-lab.png src\splash-dark.png 104 --raw
+#   "C:\Program Files\Calibre2\calibre-debug.exe" -e tools\cga-splash.py -- art\placeholder-lab-light.png src\splash-light.png 104 --raw --palette=light
 # --raw keeps drawn artwork's tones as drawn (0/85/170/255 are the four solid colours);
 # without it the tones are stretched to fill the palette, which suits photos.
 import sys
 from qt.core import QImage, Qt, qRgb
 
 raw = '--raw' in sys.argv
+palette = next((a.split('=', 1)[1] for a in sys.argv if a.startswith('--palette=')), 'classic')
 args = [a for a in sys.argv if not a.startswith('--')]
 src, dst, width = args[-3], args[-2], int(args[-1])
 
-# CGA's black / magenta / cyan / white, re-cast in the app's own colours:
-# walnut cabinet, oxblood, brass, parchment.
-PALETTE = [(0x2E, 0x1F, 0x15), (0x7C, 0x21, 0x1A), (0xB8, 0x91, 0x3F), (0xEF, 0xE2, 0xC3)]
+# CGA's black / magenta / cyan / white, re-cast in the app's colours, darkest first.
+PALETTES = {
+    # The original vintage look: walnut, oxblood, brass, parchment (shown in the dark theme).
+    'classic': [(0x2E, 0x1F, 0x15), (0x7C, 0x21, 0x1A), (0xB8, 0x91, 0x3F), (0xEF, 0xE2, 0xC3)],
+    # The light theme: ink, accent blue, maple tan (the fretboard edge), cream paper.
+    'light': [(0x1F, 0x1A, 0x13), (0x2B, 0x6C, 0xB0), (0xC4, 0xA4, 0x6C), (0xF8, 0xF1, 0xE3)],
+}
+PALETTE = PALETTES[palette]
 # 4x4 Bayer matrix: the ordered dither those old 4-colour screens were known for.
 BAYER = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]
 GAMMA = 1.0 if raw else 0.9
@@ -41,4 +48,4 @@ for y in range(height):
         t = (BAYER[y % 4][x % 4] + 0.5) / 16
         out.setPixel(x, y, min(levels, int(v * levels + t)))
 out.save(dst)
-print(f"{dst}: {width}x{height}, tones {lo}-{hi}")
+print(f"{dst}: {width}x{height}, palette {palette}, tones {lo}-{hi}")

@@ -1,6 +1,7 @@
 package com.chordchemist.app;
 
 import android.app.Activity;
+import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Build;
@@ -22,10 +23,14 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // Walnut from the first frame, so there's no grey flash before the loading screen draws.
-        getWindow().setBackgroundDrawable(new ColorDrawable(Color.parseColor("#140D08")));
+        // The theme's background from the first frame (dark or light, following the phone),
+        // so there's no flash of another colour before the loading screen draws.
+        boolean night = (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
+            == Configuration.UI_MODE_NIGHT_YES;
+        int background = Color.parseColor(night ? "#15130F" : "#EFEAE2");
+        getWindow().setBackgroundDrawable(new ColorDrawable(background));
         web = new WebView(this);
-        web.setBackgroundColor(Color.parseColor("#140D08"));
+        web.setBackgroundColor(background);
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true); // saved progressions
