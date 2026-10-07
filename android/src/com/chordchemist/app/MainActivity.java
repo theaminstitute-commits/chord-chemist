@@ -1,7 +1,6 @@
 package com.chordchemist.app;
 
 import android.app.Activity;
-import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Build;
@@ -23,11 +22,9 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // The theme's background from the first frame (dark or light, following the phone),
-        // so there's no flash of another colour before the loading screen draws.
-        boolean night = (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
-            == Configuration.UI_MODE_NIGHT_YES;
-        int background = Color.parseColor(night ? "#15130F" : "#EFEAE2");
+        // The loading screen's cream from the first frame (it is light in both themes),
+        // so there's no flash of another colour before it draws.
+        int background = Color.parseColor("#EFEAE2");
         getWindow().setBackgroundDrawable(new ColorDrawable(background));
         web = new WebView(this);
         web.setBackgroundColor(background);

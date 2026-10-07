@@ -32,9 +32,6 @@
   --string: #d9d3c7;
   --marker: #7a6350;
   --glow: rgba(240, 178, 79, 0.12);
-  --crt-screen: #15130f;
-  --crt-scan: rgba(20, 13, 8, 0.28);
-  --crt-vignette: rgba(20, 13, 8, 0.7);
   --radius: 16px;
   --radius-sm: 12px;
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
@@ -87,9 +84,6 @@
   --wire: #8d8578;
   --string: #6e6558;
   --marker: #3b3127;
-  --crt-screen: #fffdf9;
-  --crt-scan: rgba(31, 26, 19, 0.06);
-  --crt-vignette: rgba(60, 40, 10, 0.14);
   color-scheme: light;
 }
 
@@ -125,9 +119,6 @@
     --wire: #8d8578;
     --string: #6e6558;
     --marker: #3b3127;
-    --crt-screen: #fffdf9;
-    --crt-scan: rgba(31, 26, 19, 0.06);
-    --crt-vignette: rgba(60, 40, 10, 0.14);
     color-scheme: light;
   }
 }
@@ -148,8 +139,22 @@ button { cursor: pointer; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 [hidden] { display: none !important; }
 
-/* ---------- loading screen: 4-colour CGA picture on a dark monitor ---------- */
+/* ---------- loading screen: 4-colour CGA picture on a monitor ----------
+   Always in the light theme's colours, whatever theme the app is in:
+   the light tokens are set on the splash itself, so everything inside it uses them. */
 .splash {
+  --bg: #efeae2;
+  --glow: rgba(43, 108, 176, 0.12);
+  --text: #1f1a13;
+  --muted: #6b6257;
+  --accent: #2b6cb0;
+  --surface-2: #f6f1e8;
+  --border-strong: rgba(40, 30, 15, 0.2);
+  --shadow: 0 10px 30px rgba(60, 40, 10, 0.14);
+  --crt-screen: #fffdf9;
+  --crt-scan: rgba(31, 26, 19, 0.06);
+  --crt-vignette: rgba(60, 40, 10, 0.14);
+  color-scheme: light;
   position: fixed; inset: 0; z-index: 100;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
   padding: 16px;
@@ -167,14 +172,6 @@ body:has(#splash:not(.gone)) { overflow: hidden; }
 .crt img {
   display: block; width: min(56vmin, 360px); max-width: 100%; height: auto; border-radius: 6px;
   image-rendering: pixelated; image-rendering: crisp-edges;
-}
-/* The light picture in the light theme, the original one in the dark theme. */
-.crt .art-light { display: none; }
-:root[data-theme="light"] .crt .art-dark { display: none; }
-:root[data-theme="light"] .crt .art-light { display: block; }
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) .crt .art-dark { display: none; }
-  :root:not([data-theme="dark"]) .crt .art-light { display: block; }
 }
 .crt::after {
   content: ""; position: absolute; inset: 12px; border-radius: 6px; pointer-events: none;

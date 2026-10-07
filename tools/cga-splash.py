@@ -1,6 +1,5 @@
 # Turns an image into 4-colour CGA-style pixel art (the loading-screen picture).
 # Runs under Calibre's bundled Python (it ships Qt, and this PC has no other Python):
-#   "C:\Program Files\Calibre2\calibre-debug.exe" -e tools\cga-splash.py -- art\placeholder-lab.png src\splash-dark.png 104 --raw
 #   "C:\Program Files\Calibre2\calibre-debug.exe" -e tools\cga-splash.py -- art\placeholder-lab-light.png src\splash-light.png 104 --raw --palette=light
 # --raw keeps drawn artwork's tones as drawn (0/85/170/255 are the four solid colours);
 # without it the tones are stretched to fill the palette, which suits photos.
@@ -14,7 +13,7 @@ src, dst, width = args[-3], args[-2], int(args[-1])
 
 # CGA's black / magenta / cyan / white, re-cast in the app's colours, darkest first.
 PALETTES = {
-    # The original vintage look: walnut, oxblood, brass, parchment (shown in the dark theme).
+    # The original vintage look: walnut, oxblood, brass, parchment (no longer used).
     'classic': [(0x2E, 0x1F, 0x15), (0x7C, 0x21, 0x1A), (0xB8, 0x91, 0x3F), (0xEF, 0xE2, 0xC3)],
     # The light theme: ink, accent blue, maple tan (the fretboard edge), cream paper.
     'light': [(0x1F, 0x1A, 0x13), (0x2B, 0x6C, 0xB0), (0xC4, 0xA4, 0x6C), (0xF8, 0xF1, 0xE3)],
