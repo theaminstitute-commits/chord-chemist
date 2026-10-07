@@ -17,6 +17,7 @@
     tab: 'all',
     shown: null, // { chord, voicing, fn, rule, next } on the diagram and fretboard
     playing: -1,
+    playingPart: 'main', // which chord of the playing bar is sounding: 'main' or 'split'
   };
 
   // ---------- persistence ----------
@@ -402,8 +403,8 @@
     state.slots.forEach((s, i) => {
       const spec = state.template.slots[i];
       const li = document.createElement('li');
-      li.className = 'slot' + (i === state.selected ? ' selected' : '') + (i === state.playing ? ' playing' : '') +
-        ((s.main && !s.mainOpt) || (s.split && !s.splitOpt) ? ' invalid' : '');
+      li.className = 'slot' + (s.split ? ' has-split' : '') + (i === state.selected ? ' selected' : '') +
+        (i === state.playing ? ' playing' : '') + ((s.main && !s.mainOpt) || (s.split && !s.splitOpt) ? ' invalid' : '');
       li.dataset.i = i;
       const slash = (n) => '/'.repeat(Math.max(1, n));
       let mainHtml;
@@ -416,12 +417,26 @@
         mainHtml = `<div class="slot-empty">Drop a ${esc(spec.rn)} chord here<br>(e.g. ${esc(hint)})</div>`;
       }
       const count = s.main ? `${s.mainV + 1}/${V.voicings(s.main).length}` : '';
+      // The bar's chord is a card; a passing chord is a smaller, tinted card tucked against it
+      // (or, when there is none, a dashed "+ ½" tab in the same place).
+      const now = (part) => (i === state.playing && state.playingPart === part ? ' now' : '');
+      const aimed = (part) => (i === state.selected && state.target === part ? ' aimed' : '');
       li.innerHTML = `
         <div class="slot-rn"><span>${esc(spec.rn)}</span><span class="num">bar ${i + 1}</span></div>
-        <div class="slot-main" data-drop="main" tabindex="0" aria-label="Bar ${i + 1}, ${esc(spec.rn)}${s.main ? ', ' + esc(s.main.sym) : ', empty'}">${mainHtml}</div>
-        ${s.split
-          ? `<div class="slot-split filled" data-drop="split" title="Passing chord, 2nd half of the bar"><span>½ ${esc(s.split.sym)} ${slash(beats / 2)}</span><button class="x" type="button" data-act="unsplit" aria-label="Remove passing chord">×</button></div>`
-          : `<button class="slot-split" type="button" data-drop="split" data-act="split">+ passing chord ½</button>`}
+        <div class="bar-body">
+          <div class="slot-main${now('main')}${aimed('main')}" data-drop="main" tabindex="0" aria-label="Bar ${i + 1}, ${esc(spec.rn)}${s.main ? ', ' + esc(s.main.sym) : ', empty'}">${mainHtml}</div>
+          ${s.split
+            ? `<div class="passing${now('split')}${aimed('split')}${s.splitOpt ? '' : ' bad'}" data-drop="split" tabindex="0" title="Passing chord: 2nd half of bar ${i + 1}, leading into the next bar"
+                 aria-label="Passing chord ${esc(s.split.sym)}, second half of bar ${i + 1}">
+                <span class="passing-tag">passing</span>
+                <span class="passing-sym">${esc(s.split.sym)}</span>
+                <span class="passing-fn">${esc(s.splitOpt ? s.splitOpt.fn : T.roman(s.split, state.key))}</span>
+                <span class="passing-dia"></span>
+                <span class="slashes">${slash(beats / 2)}</span>
+                <button class="x" type="button" data-act="unsplit" aria-label="Remove passing chord">×</button>
+              </div>`
+            : `<button class="passing-add${aimed('split')}" type="button" data-drop="split" data-act="split" title="Add a passing chord for the 2nd half of the bar" aria-label="Add a passing chord to bar ${i + 1}">+&nbsp;½</button>`}
+        </div>
         <div class="slot-tools">
           <button type="button" data-act="vprev" aria-label="Previous voicing" ${s.main ? '' : 'disabled'}>◀</button>
           <span class="count" title="Voicing">${count}</span>
@@ -430,6 +445,7 @@
           <button type="button" data-act="clear" aria-label="Empty bar ${i + 1}" ${s.main ? '' : 'disabled'}>×</button>
         </div>`;
       if (s.main) li.querySelector('.slot-dia').appendChild(diagram(slotVoicing(i, 'main')));
+      if (s.split) li.querySelector('.passing-dia').appendChild(diagram(slotVoicing(i, 'split')));
       ol.appendChild(li);
     });
     const filled = state.slots.filter((s) => s.main).length;
@@ -488,7 +504,7 @@
       return;
     }
     if (act === 'split') { selectSlot(i, 'split'); return; }
-    if (e.target.closest('.slot-split.filled')) { selectSlot(i, 'split'); playSlot(i, 'split'); return; }
+    if (e.target.closest('.passing')) { selectSlot(i, 'split'); playSlot(i, 'split'); return; }
     selectSlot(i, 'main');
     if (s.main) playSlot(i);
   });
@@ -499,6 +515,12 @@
       const i = +e.target.closest('.slot').dataset.i;
       selectSlot(i, 'main');
       if (state.slots[i].main) playSlot(i);
+    }
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.classList.contains('passing')) {
+      e.preventDefault();
+      const i = +e.target.closest('.slot').dataset.i;
+      selectSlot(i, 'split');
+      playSlot(i, 'split');
     }
   });
 
@@ -638,8 +660,8 @@
     const events = [];
     state.slots.forEach((s, i) => {
       const half = s.split ? beats / 2 : beats;
-      events.push({ midis: slotVoicing(i, 'main').midi, beats: half, onStart: () => { state.playing = i; renderSlots(); showSlot(i, 'main'); } });
-      if (s.split) events.push({ midis: slotVoicing(i, 'split').midi, beats: beats / 2, onStart: () => { showSlot(i, 'split'); } });
+      events.push({ midis: slotVoicing(i, 'main').midi, beats: half, onStart: () => { state.playing = i; state.playingPart = 'main'; renderSlots(); showSlot(i, 'main'); } });
+      if (s.split) events.push({ midis: slotVoicing(i, 'split').midi, beats: beats / 2, onStart: () => { state.playingPart = 'split'; renderSlots(); showSlot(i, 'split'); } });
     });
     A.playSequence(events, {
       tempo: +$('tempo').value, style: $('style').value, loop: $('loop').checked,
@@ -761,7 +783,12 @@
       started = true;
       splash.classList.add('run'); // starts the progress bar
       setTimeout(hideSplash, 2500);
-      requestAnimationFrame(() => setTimeout(boot, 0));
+      // Build after the next frame, so the bar is already moving; a hidden tab draws no
+      // frames, so the timer builds it anyway.
+      let built = false;
+      const buildOnce = () => { if (!built) { built = true; boot(); } };
+      requestAnimationFrame(() => setTimeout(buildOnce, 0));
+      setTimeout(buildOnce, 250);
     }
     Promise.race([ready, new Promise((r) => setTimeout(r, 500))]).then(() => {
       const android = window.ChordChemistAndroid;

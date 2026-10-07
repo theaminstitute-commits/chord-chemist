@@ -362,41 +362,86 @@ select {
 .btn-play:hover:not(:disabled) { background: linear-gradient(135deg, var(--accent), var(--accent-2)); filter: brightness(1.06); }
 .btn-play:disabled { box-shadow: none; }
 
-/* The chart is a lead sheet on cream paper, in both themes. */
+/* The chart is a lead sheet on cream paper, in both themes. Bars stretch to fill each row. */
 .slots {
   list-style: none; margin: 0; padding: 8px 10px;
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  display: flex; flex-wrap: wrap;
   background: var(--paper); color: var(--paper-ink);
   border: 1px solid var(--paper-edge); border-radius: var(--radius-sm); box-shadow: var(--shadow-sm);
 }
 .slot {
-  position: relative; display: grid; grid-template-rows: auto 1fr auto auto; gap: 4px;
+  position: relative; display: grid; grid-template-rows: auto 1fr auto; gap: 6px;
+  flex: 1 1 160px; min-width: 160px;
   padding: 6px 10px 8px; border-right: 1px solid var(--paper-ink);
-  min-height: 0; background: transparent;
+  background: transparent;
 }
+.slot.has-split { flex-basis: 270px; min-width: 250px; }
 .slot:first-child { border-left: 3px double var(--paper-ink); }
 .slot:last-child { border-right: 3px double var(--paper-ink); }
-.slot.selected { background: rgba(31, 111, 178, 0.08); box-shadow: inset 0 -3px 0 var(--paper-active); }
-.slot.playing { background: rgba(31, 111, 178, 0.18); box-shadow: inset 0 -3px 0 var(--paper-active); }
+.slot.selected { background: rgba(31, 111, 178, 0.07); box-shadow: inset 0 -3px 0 var(--paper-active); }
+.slot.playing { background: rgba(31, 111, 178, 0.12); box-shadow: inset 0 -3px 0 var(--paper-active); }
 .slot.drop-hover { background: rgba(30, 138, 78, 0.14); }
 .slot-rn { display: flex; justify-content: space-between; align-items: baseline; font: 13px/1 var(--type); color: var(--paper-active); }
 .slot-rn .num { color: var(--paper-muted); font-size: 11px; }
-.slot-main { display: grid; justify-items: start; gap: 2px; cursor: pointer; min-height: 120px; align-content: start; }
+.bar-body { display: flex; align-items: flex-start; min-width: 0; }
+
+/* The bar's chord: a card on the sheet. */
+.slot-main {
+  position: relative; z-index: 1; flex: 1 1 auto; min-width: 0; max-width: 240px;
+  display: grid; justify-items: start; align-content: start; gap: 2px; cursor: pointer;
+  min-height: 150px; padding: 8px 10px;
+  background: #fffcf6; border: 1px solid var(--paper-edge); border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(60, 40, 10, 0.1);
+}
+.slot-main:has(.slot-empty) { padding: 0; background: transparent; border: 0; box-shadow: none; }
 .slot-sym { font: 24px/1.05 var(--type); overflow-wrap: anywhere; }
 .slot-fn { font: 12px/1.2 var(--body); color: var(--paper-muted); }
 .slot-empty {
-  width: 100%; min-height: 110px; display: grid; place-items: center; text-align: center;
-  border: 1.5px dashed rgba(31, 26, 19, 0.3); border-radius: 8px; padding: 8px;
+  width: 100%; min-height: 150px; display: grid; place-items: center; text-align: center;
+  border: 1.5px dashed rgba(31, 26, 19, 0.3); border-radius: 10px; padding: 8px;
   font: italic 12.5px/1.35 var(--body); color: var(--paper-muted);
 }
 .slashes { font: 15px/1 var(--type); letter-spacing: 0.3em; color: var(--paper-muted); white-space: nowrap; }
-.slot-split {
-  display: flex; align-items: center; justify-content: space-between; gap: 4px;
-  border: 1px dashed rgba(31, 26, 19, 0.3); border-radius: 8px; padding: 4px 6px; min-height: 30px;
-  font: 12px/1.2 var(--type); color: var(--paper-muted); background: transparent; text-align: left; width: 100%;
+
+/* A passing chord: a smaller, maple-tinted card tucked against its bar's chord, a little
+   lower, with a notch pointing on into the next bar (where a passing chord leads). */
+.passing {
+  position: relative; z-index: 2; flex: 0 0 auto; width: 100px;
+  margin: 34px 0 0 -16px;
+  display: grid; justify-items: start; gap: 1px;
+  padding: 6px 8px 7px;
+  background: #f1e1bd; color: var(--paper-ink);
+  border: 1.5px solid #c4a46c; border-radius: 10px;
+  box-shadow: -3px 4px 10px rgba(60, 40, 10, 0.18);
+  cursor: pointer;
 }
-.slot-split.filled { border-style: solid; border-color: var(--paper-active); color: var(--paper-ink); cursor: pointer; }
-.slot-split .x { border: 0; background: none; padding: 0 2px; font-size: 14px; color: var(--paper-muted); }
+.passing::after {
+  content: ""; position: absolute; right: -9px; top: 50%; margin-top: -7px;
+  border-left: 8px solid #c4a46c; border-top: 7px solid transparent; border-bottom: 7px solid transparent;
+}
+.passing-tag { padding-right: 14px; font: 700 9.5px/1 var(--body); text-transform: uppercase; letter-spacing: 0.1em; color: #85652c; }
+.passing-sym { font: 17px/1.05 var(--type); overflow-wrap: anywhere; margin-top: 2px; }
+.passing-fn { font: 11px/1.2 var(--body); color: var(--paper-muted); }
+.passing-dia svg { width: 62px; height: auto; display: block; }
+.passing .slashes { font-size: 13px; }
+.passing .x {
+  position: absolute; top: 2px; right: 3px; border: 0; background: none; padding: 0 3px;
+  font-size: 15px; line-height: 1; color: var(--paper-muted); cursor: pointer;
+}
+.passing .x:hover { color: var(--paper-bad); }
+.passing.bad .passing-sym { color: var(--paper-bad); text-decoration: line-through wavy var(--paper-bad) 1px; }
+/* No passing chord yet: a dashed tab in the same spot. */
+.passing-add {
+  position: relative; z-index: 2; flex: 0 0 auto; width: 40px; min-height: 66px;
+  margin: 34px 0 0 -12px; padding: 4px;
+  border: 1.5px dashed #c4a46c; border-radius: 10px; background: rgba(241, 225, 189, 0.6);
+  color: #85652c; font: 700 12px/1.1 var(--type); cursor: pointer;
+}
+.passing-add:hover { background: #f1e1bd; }
+/* Sounding now (during playback), and which card the directory is filling. */
+.slot-main.now, .passing.now { outline: 2.5px solid var(--paper-active); outline-offset: 1px; }
+.passing.aimed, .passing-add.aimed { box-shadow: 0 0 0 2px var(--paper-active), -3px 4px 10px rgba(60, 40, 10, 0.18); }
+
 .slot-tools { display: flex; align-items: center; gap: 3px; font: 11px/1 var(--type); color: var(--paper-muted); }
 .slot-tools button {
   border: 1px solid rgba(31, 26, 19, 0.2); background: transparent; color: var(--paper-ink);
@@ -405,7 +450,7 @@ select {
 .slot-tools button:hover:not(:disabled) { background: rgba(31, 26, 19, 0.07); }
 .slot-tools button:disabled { opacity: 0.35; cursor: default; }
 .slot-tools .count { flex: 1; text-align: center; font-variant-numeric: tabular-nums; }
-.slot.invalid .slot-sym { color: var(--paper-bad); text-decoration: line-through wavy var(--paper-bad) 1px; }
+.slot.invalid .slot-main .slot-sym { color: var(--paper-bad); text-decoration: line-through wavy var(--paper-bad) 1px; }
 .slot .warn { font: 11.5px/1.3 var(--body); color: var(--paper-bad); }
 .status { margin: 0; min-height: 1.4em; font: italic 13.5px/1.4 var(--body); color: var(--muted); }
 .status.bad { color: var(--bad); font-style: normal; }
@@ -513,8 +558,15 @@ html.theme-fade *::after {
   .chart { padding: 8px 10px 10px; }
   .chart-head h2 { display: none; }
   .transport { justify-content: flex-start; }
-  .slots { grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); padding: 6px 8px; }
-  .slot { padding: 6px 6px 8px; }
+  .slots { padding: 6px 8px; }
+  .slot { flex-basis: 136px; min-width: 136px; padding: 6px 6px 8px; }
+  .slot.has-split { flex-basis: 224px; min-width: 214px; }
+  .slot-main { min-height: 128px; padding: 6px 8px; }
+  .slot-empty { min-height: 128px; }
+  .passing { width: 88px; margin-top: 28px; padding: 5px 6px 6px; }
+  .passing-sym { font-size: 15px; }
+  .passing-dia svg { width: 54px; }
+  .passing-add { margin-top: 28px; min-height: 56px; width: 36px; }
   .slot-sym { font-size: 20px; }
   .slot-tools { gap: 2px; }
   .slot-tools button { min-width: 20px; padding: 0 3px; }
@@ -522,8 +574,7 @@ html.theme-fade *::after {
 @media (max-width: 560px) {
   .study { grid-template-columns: minmax(0, 1fr); }
   .brand h1 { font-size: 28px; }
-  .slots { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .slot:nth-child(2n + 1) { border-left: 3px double var(--paper-ink); }
+  .slot { flex-basis: 40%; }
 }
 @media (prefers-reduced-motion: reduce) {
   .card, .btn { transition: none; }
