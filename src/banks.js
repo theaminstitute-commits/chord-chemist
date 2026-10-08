@@ -6,7 +6,7 @@
  */
 (function () {
   'use strict';
-  const T = window.CCTheory, V = window.CCVoicings, A = window.CCAudio, App = window.CCApp;
+  const T = window.CCTheory, V = window.CCVoicings, A = window.CCAudio, App = window.CCApp, Store = window.CCStore;
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const STORE = 'chord-chemist-banks-v1';
@@ -21,7 +21,7 @@
   // ---------- persistence ----------
 
   function save() {
-    try { localStorage.setItem(STORE, JSON.stringify(banks)); } catch (e) { /* storage unavailable */ }
+    Store.set(STORE, JSON.stringify(banks));
   }
   function valid(b) {
     return !!(b && T.TEMPLATE[b.tpl] && Array.isArray(b.bars) && b.bars.length === T.TEMPLATE[b.tpl].slots.length &&
@@ -29,7 +29,7 @@
   }
   function load() {
     try {
-      const d = JSON.parse(localStorage.getItem(STORE) || 'null');
+      const d = JSON.parse(Store.get(STORE) || 'null');
       if (!d) return;
       banks.slots = LETTERS.map((_, i) => (valid(d.slots && d.slots[i]) ? d.slots[i] : null));
       banks.set = clamp(d.set || 1, 1, MAX_SET);

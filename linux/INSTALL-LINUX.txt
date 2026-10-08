@@ -1,7 +1,7 @@
 CHORD CHEMIST for Linux Mint / Ubuntu - pick ONE of these
 ==========================================================
 
-1) chord-chemist_0.8.0_all.deb   (recommended; newest version)
+1) chord-chemist_0.8.1_all.deb   (recommended; newest version)
    Double-click it. Mint's Package Installer opens: click "Install Package"
    and enter your password. Chord Chemist then appears in the menu under
    Sound & Video and Education.

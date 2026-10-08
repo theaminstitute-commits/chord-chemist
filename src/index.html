@@ -1,7 +1,25 @@
 <title>Chord Chemist</title>
 <script>
-  // Apply a saved Light/Dark choice before anything draws, so the page never flashes the other theme.
-  try { var t = localStorage.getItem('chord-chemist-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}
+  // Saved state (chart, banks, theme) lives in localStorage. The Android app also keeps a copy of
+  // each item in its own preferences and hands it back first, because WebView's localStorage does
+  // not come back after the app is killed.
+  (function () {
+    var android = window.ChordChemistAndroid;
+    var native = android && typeof android.getItem === 'function' ? android : null;
+    function get(key) {
+      var v = native ? native.getItem(key) : null;
+      if (v != null) return v;
+      try { return localStorage.getItem(key); } catch (e) { return null; }
+    }
+    function set(key, value) {
+      try { localStorage.setItem(key, value); } catch (e) { /* storage unavailable */ }
+      if (native) native.putItem(key, value);
+    }
+    window.CCStore = { get: get, set: set };
+    // Apply a saved Light/Dark choice before anything draws, so the page never flashes the other theme.
+    var t = get('chord-chemist-theme');
+    if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+  })();
 </script>
 <!--FONTS-->
 <!--STYLE-->

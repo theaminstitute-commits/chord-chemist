@@ -2,6 +2,7 @@ package com.chordchemist.app;
 
 import android.app.Activity;
 import android.content.ContentValues;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.media.MediaScannerConnection;
@@ -29,6 +30,7 @@ import org.json.JSONObject;
 /** Full-screen WebView around the single-file app in assets/index.html. */
 public class MainActivity extends Activity {
     private WebView web;
+    private SharedPreferences prefs;
     private final FileSink sink = new FileSink();
 
     @Override
@@ -46,7 +48,16 @@ public class MainActivity extends Activity {
         s.setMediaPlaybackRequiresUserGesture(false);
         s.setTextZoom(100); // the layout is sized in CSS pixels; ignore the system font scale
         web.setWebViewClient(new WebViewClient());
+        prefs = getSharedPreferences("chord-chemist", MODE_PRIVATE);
         web.addJavascriptInterface(new Object() {
+            // Saved state (chart, banks, theme). WebView's localStorage does not come back after
+            // the app is killed, so the page keeps a copy of each item here and reads it first.
+            @JavascriptInterface
+            public String getItem(String key) { return prefs.getString(key, null); }
+
+            @JavascriptInterface
+            public void putItem(String key, String value) { prefs.edit().putString(key, value).commit(); }
+
             // The page asks to be told when its loading screen has actually reached the display,
             // so the 2.5 s it stays up are all visible (WebView's first frame can lag the page).
             @JavascriptInterface

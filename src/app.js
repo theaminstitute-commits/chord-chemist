@@ -1,7 +1,7 @@
 /* Chord Chemist — UI: directory, progression chart, diagrams, fretboard, playback. */
 (function () {
   'use strict';
-  const T = window.CCTheory, V = window.CCVoicings, A = window.CCAudio;
+  const T = window.CCTheory, V = window.CCVoicings, A = window.CCAudio, Store = window.CCStore;
   const $ = (id) => document.getElementById(id);
   const SVGNS = 'http://www.w3.org/2000/svg';
   const STORE = 'chord-chemist-v1';
@@ -24,7 +24,7 @@
 
   function save() {
     try {
-      localStorage.setItem(STORE, JSON.stringify({
+      Store.set(STORE, JSON.stringify({
         tpl: state.template.id, start: state.start,
         slots: state.slots.map((s) => ({
           main: s.main && [s.main.root, s.main.q], mainV: s.mainV,
@@ -37,7 +37,7 @@
 
   function load() {
     try {
-      const d = JSON.parse(localStorage.getItem(STORE) || 'null');
+      const d = JSON.parse(Store.get(STORE) || 'null');
       if (!d || !T.TEMPLATE[d.tpl]) return false;
       setTemplate(d.tpl, d.start, false);
       d.slots.forEach((s, i) => {
@@ -705,16 +705,14 @@
   // API where the browser has it, otherwise a short colour transition (none with reduced motion).
   const THEME_KEY = 'chord-chemist-theme';
   function savedTheme() {
-    try {
-      const t = localStorage.getItem(THEME_KEY);
-      return t === 'light' || t === 'dark' ? t : 'system';
-    } catch (e) { return 'system'; }
+    const t = Store.get(THEME_KEY);
+    return t === 'light' || t === 'dark' ? t : 'system';
   }
   function markTheme(choice) {
     $('theme').querySelectorAll('[data-choice]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.choice === choice)));
   }
   function setTheme(choice) {
-    try { localStorage.setItem(THEME_KEY, choice); } catch (e) { /* storage unavailable */ }
+    Store.set(THEME_KEY, choice);
     const root = document.documentElement;
     const apply = () => {
       if (choice === 'system') delete root.dataset.theme;
