@@ -23,13 +23,20 @@ re-picks them so the hand moves as little as possible. Playback uses sampled jaz
 The loading-screen art is a placeholder drawn by tools/placeholder-lab.py --light and dithered to
 the light theme's four colours by tools/cga-splash.py; the loading screen is light in both themes.
 
+**Backing tracks.** Store the chart in one of four banks (A–D), each with its own tempo and a
+×1–×8 repeat count; play a bank, or the whole set in order (itself ×1–×8), and export it as a
+16-bit WAV with an optional one-bar count-in and metronome, to solo over outside the app. The
+WAV is rendered offline with the same sound as playback. The Android app writes it to
+Download/Chord Chemist; browsers save it to their Downloads folder.
+
 ## Layout
 
 ```
 src/theory.js     chord formulas, keys, progression templates, legality rules
 src/voicings.js   voicing generator and voice-leading choice
-src/audio.js      plucked-string synth and playback scheduler
+src/audio.js      plucked-string synth, sampled guitar, playback scheduler, offline WAV rendering
 src/app.js        UI: directory, chart, diagrams, fretboard, drag & drop
+src/banks.js      backing-track banks: store, play and export the chart
 src/style.css     vintage card-catalog look (light + dark)
 build.js          inlines everything into dist/chord-chemist.html (fonts embedded, works offline)
 linux/            launcher, installer, and build-packages.sh (.deb + single-file .run)
