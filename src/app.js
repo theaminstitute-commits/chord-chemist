@@ -287,7 +287,7 @@
 
   // ---------- showing a chord ----------
 
-  function show(chord, v, opt, slotIndex, nextV) {
+  function show(chord, v, opt, slotIndex, nextV, key = state.key) {
     state.shown = { chord, v, opt, slotIndex };
     const fig = $('bigdiag');
     fig.innerHTML = '';
@@ -297,12 +297,12 @@
     fig.appendChild(cap);
 
     const q = T.Q[chord.q];
-    const fn = opt ? opt.fn : T.roman(chord, state.key);
+    const fn = opt ? opt.fn : T.roman(chord, key);
     const voiceDesc = v ? v.frets.map((f) => (f < 0 ? '×' : f)).join(' ') : '—';
     const kind = v ? (v.kind === 'barre' ? 'barre form' : `${v.midi.length}-note voicing${v.rootless ? ', no root' : ''}`) : '';
     $('notes').innerHTML = `
       <h3>${esc(chord.sym)}</h3>
-      <p class="qname">${esc(T.pretty(chord.root))} ${esc(q.name)} · ${esc(fn)} in ${esc(T.pretty(state.key.tonic))} ${state.key.mode}</p>
+      <p class="qname">${esc(T.pretty(chord.root))} ${esc(q.name)} · ${esc(fn)} in ${esc(T.pretty(key.tonic))} ${key.mode}</p>
       <dl>
         <dt>Tones</dt><dd class="tones">${chord.tones.map((t) => esc(T.pretty(t.name))).join('  ')}</dd>
         <dt>Formula</dt><dd class="tones">${chord.tones.map((t) => esc(V.degLabel(t.deg))).join('  ')}</dd>
@@ -456,6 +456,7 @@
   function render() {
     renderSlots();
     renderDirectory();
+    if (api.onChange) api.onChange();
   }
 
   // ---------- interactions ----------
@@ -653,6 +654,8 @@
     state.playing = -1;
     renderSlots();
   }
+  // Whatever stops the sound (a bank playing, auditioning a chord) also ends the chart's highlight.
+  A.onStop(() => { if (state.playing >= 0) { state.playing = -1; renderSlots(); } });
 
   $('play').addEventListener('click', () => {
     if (!complete()) return;
@@ -731,6 +734,52 @@
     if (b && b.getAttribute('aria-pressed') !== 'true') setTheme(b.dataset.choice);
   });
   markTheme(savedTheme());
+
+  // ---------- the chart, for the backing-track banks (banks.js) ----------
+
+  const api = {
+    say,
+    /** True once every bar of the chart has a chord. */
+    complete: () => state.slots.length > 0 && complete(),
+    /** The chart as plain data a bank can keep and play back: chords, voicings, beats, strum, tempo. */
+    snapshot() {
+      const fn = (c, opt) => (opt ? opt.fn : T.roman(c, state.key));
+      return {
+        tpl: state.template.id, start: state.start,
+        tempo: +$('tempo').value, beats: +$('beats').value, style: $('style').value,
+        bars: state.slots.map((s) => ({
+          main: [s.main.root, s.main.q], mainV: s.mainV, mainFn: fn(s.main, s.mainOpt), mainRule: s.mainOpt ? s.mainOpt.rule : '',
+          split: s.split ? [s.split.root, s.split.q] : null, splitV: s.splitV,
+          splitFn: s.split ? fn(s.split, s.splitOpt) : '', splitRule: s.splitOpt ? s.splitOpt.rule : '',
+        })),
+      };
+    },
+    /** Put a snapshot back in the chart to edit it. */
+    open(snap) {
+      A.stopAll();
+      setTemplate(snap.tpl, snap.start, false);
+      snap.bars.forEach((bar, i) => {
+        const s = state.slots[i];
+        if (!s) return;
+        s.main = T.makeChord(bar.main[0], bar.main[1]);
+        s.mainV = bar.mainV || 0;
+        if (bar.split) { s.split = T.makeChord(bar.split[0], bar.split[1]); s.splitV = bar.splitV || 0; }
+      });
+      $('tempo').value = snap.tempo;
+      $('tempoOut').textContent = $('tempo').value;
+      $('beats').value = String(snap.beats);
+      $('style').value = snap.style;
+      refreshRules();
+      state.selected = 0;
+      render();
+      showSlot(0);
+      save();
+    },
+    /** Show a bank's chord on the diagram and fretboard, explained in the bank's own key. */
+    show(chord, v, fn, rule, key) { show(chord, v, { fn, rule: rule || 'Not in this bar’s directory.' }, -1, null, key); },
+    onChange: null, // set by banks.js; called after every chart render
+  };
+  window.CCApp = api;
 
   // ---------- boot ----------
 

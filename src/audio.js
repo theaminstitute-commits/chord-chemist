@@ -1,14 +1,74 @@
-/* Chord Chemist — plucked-string synth and progression scheduler.
+/* Chord Chemist — plucked-string synth, sampled jazz guitar, progression scheduler and
+ * offline rendering (exported backing tracks).
  *
  * Each string is a Karplus–Strong plucked string rendered once per pitch and
- * cached, run through a warm body filter and a short room reverb.
+ * cached, run through a warm body filter and a short room reverb. The same
+ * signal chain is built on an OfflineAudioContext to render a WAV.
  */
 (function (global) {
   'use strict';
 
-  let ctx = null, master = null, bus = null, volume = null;
+  let ctx = null, live = null; // live: the signal chain on the real-time context
   let volumeLevel = 1;
   const bufferCache = new Map();
+
+  /** The signal chain on a context: guitar bus → body → reverb → level chain → out. */
+  function makeGraph(c) {
+    // Level chain: gentle compression, make-up gain, then a hard limiter so the
+    // louder output never clips.
+    const master = c.createGain();
+    master.gain.value = 1;
+    const comp = c.createDynamicsCompressor();
+    comp.threshold.value = -20;
+    comp.knee.value = 6;
+    comp.ratio.value = 4;
+    comp.attack.value = 0.004;
+    comp.release.value = 0.2;
+    const makeup = c.createGain();
+    makeup.gain.value = 1.8;
+    const volume = c.createGain();
+    volume.gain.value = 1;
+    const limiter = c.createDynamicsCompressor();
+    limiter.threshold.value = -1.5;
+    limiter.knee.value = 0;
+    limiter.ratio.value = 20;
+    limiter.attack.value = 0.001;
+    limiter.release.value = 0.08;
+    // Soft ceiling: unity below 0.7, then rounds off to about -0.8 dBFS, catching
+    // the pluck transients the limiter is too slow for.
+    const ceiling = c.createWaveShaper();
+    const curve = new Float32Array(2048);
+    for (let i = 0; i < curve.length; i++) {
+      const x = (i / (curve.length - 1)) * 2 - 1, ax = Math.abs(x);
+      curve[i] = Math.sign(x) * (ax < 0.7 ? ax : 0.7 + 0.27 * Math.tanh((ax - 0.7) / 0.27));
+    }
+    ceiling.curve = curve;
+    ceiling.oversample = '2x';
+    master.connect(comp).connect(makeup).connect(volume).connect(limiter).connect(ceiling).connect(c.destination);
+
+    // Body: soften the top end and add a little low-mid wood.
+    const body = c.createBiquadFilter();
+    body.type = 'lowpass';
+    body.frequency.value = 5200;
+    body.Q.value = 0.5;
+    const wood = c.createBiquadFilter();
+    wood.type = 'peaking';
+    wood.frequency.value = 180;
+    wood.gain.value = 3;
+    wood.Q.value = 0.9;
+    const bus = c.createGain();
+    bus.connect(wood).connect(body);
+
+    const dry = c.createGain();
+    dry.gain.value = 0.85;
+    const wet = c.createGain();
+    wet.gain.value = 0.22;
+    const verb = c.createConvolver();
+    verb.buffer = roomImpulse(c, 1.6);
+    body.connect(dry).connect(master);
+    body.connect(verb).connect(wet).connect(master);
+    return { ctx: c, master, bus, volume, notes: new Set() };
+  }
 
   function ensure() {
     if (ctx) {
@@ -17,65 +77,14 @@
     }
     const AC = global.AudioContext || global.webkitAudioContext;
     ctx = new AC();
-    // Level chain: gentle compression, make-up gain, then a hard limiter so the
-    // louder output never clips.
-    master = ctx.createGain();
-    master.gain.value = 1;
-    const comp = ctx.createDynamicsCompressor();
-    comp.threshold.value = -20;
-    comp.knee.value = 6;
-    comp.ratio.value = 4;
-    comp.attack.value = 0.004;
-    comp.release.value = 0.2;
-    const makeup = ctx.createGain();
-    makeup.gain.value = 1.8;
-    volume = ctx.createGain();
-    volume.gain.value = volumeLevel;
-    const limiter = ctx.createDynamicsCompressor();
-    limiter.threshold.value = -1.5;
-    limiter.knee.value = 0;
-    limiter.ratio.value = 20;
-    limiter.attack.value = 0.001;
-    limiter.release.value = 0.08;
-    // Soft ceiling: unity below 0.7, then rounds off to about -0.8 dBFS, catching
-    // the pluck transients the limiter is too slow for.
-    const ceiling = ctx.createWaveShaper();
-    const curve = new Float32Array(2048);
-    for (let i = 0; i < curve.length; i++) {
-      const x = (i / (curve.length - 1)) * 2 - 1, ax = Math.abs(x);
-      curve[i] = Math.sign(x) * (ax < 0.7 ? ax : 0.7 + 0.27 * Math.tanh((ax - 0.7) / 0.27));
-    }
-    ceiling.curve = curve;
-    ceiling.oversample = '2x';
-    master.connect(comp).connect(makeup).connect(volume).connect(limiter).connect(ceiling).connect(ctx.destination);
-
-    // Body: soften the top end and add a little low-mid wood.
-    const body = ctx.createBiquadFilter();
-    body.type = 'lowpass';
-    body.frequency.value = 5200;
-    body.Q.value = 0.5;
-    const wood = ctx.createBiquadFilter();
-    wood.type = 'peaking';
-    wood.frequency.value = 180;
-    wood.gain.value = 3;
-    wood.Q.value = 0.9;
-    bus = ctx.createGain();
-    bus.connect(wood).connect(body);
-
-    const dry = ctx.createGain();
-    dry.gain.value = 0.85;
-    const wet = ctx.createGain();
-    wet.gain.value = 0.22;
-    const verb = ctx.createConvolver();
-    verb.buffer = roomImpulse(1.6);
-    body.connect(dry).connect(master);
-    body.connect(verb).connect(wet).connect(master);
+    live = makeGraph(ctx);
+    live.volume.gain.value = volumeLevel;
     return ctx;
   }
 
-  function roomImpulse(seconds) {
-    const len = Math.floor(ctx.sampleRate * seconds);
-    const buf = ctx.createBuffer(2, len, ctx.sampleRate);
+  function roomImpulse(c, seconds) {
+    const len = Math.floor(c.sampleRate * seconds);
+    const buf = c.createBuffer(2, len, c.sampleRate);
     for (let ch = 0; ch < 2; ch++) {
       const d = buf.getChannelData(ch);
       for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2);
@@ -121,6 +130,33 @@
     for (let i = 0; i < fade; i++) out[len - 1 - i] *= i / fade;
     bufferCache.set(midi, buf);
     return buf;
+  }
+
+  // ---------- metronome ----------
+  // A short tick: a sine burst with a touch of noise, higher on the first beat of a bar.
+  const clickCache = new Map();
+  function clickBuffer(accent) {
+    const key = accent ? 'hi' : 'lo';
+    if (clickCache.has(key)) return clickCache.get(key);
+    const sr = ctx.sampleRate, len = Math.floor(sr * 0.05);
+    const buf = ctx.createBuffer(1, len, sr);
+    const d = buf.getChannelData(0);
+    const f = accent ? 1760 : 1175;
+    for (let i = 0; i < len; i++) {
+      const t = i / sr;
+      d[i] = (Math.sin(2 * Math.PI * f * t) * 0.8 + (Math.random() * 2 - 1) * 0.2) * Math.exp(-t * (accent ? 90 : 120));
+    }
+    clickCache.set(key, buf);
+    return buf;
+  }
+
+  function click(graph, at, accent, gain) {
+    const src = graph.ctx.createBufferSource();
+    src.buffer = clickBuffer(accent);
+    const g = graph.ctx.createGain();
+    g.gain.value = gain * (accent ? 1 : 0.7);
+    src.connect(g).connect(graph.master); // straight to the level chain: no guitar body, no reverb
+    src.start(at);
   }
 
   // ---------- sampled jazz guitar ----------
@@ -185,28 +221,26 @@
 
   function setVoice(v) { voice = v === 'synth' ? 'synth' : 'jazz'; }
 
-  const live = new Set();
-
-  /** Strum a voicing (MIDI notes low to high) at time `at`; returns a handle to damp it. */
-  function strum(midis, at, opts = {}) {
-    ensure();
-    const t0 = Math.max(at ?? ctx.currentTime, ctx.currentTime);
+  /** Strum a voicing (MIDI notes low to high) on a graph at time `at`; returns a handle to damp it. */
+  function strum(graph, midis, at, opts = {}) {
+    const c = graph.ctx;
+    const t0 = Math.max(at ?? c.currentTime, c.currentTime);
     const spread = opts.spread ?? 0.022;
     const vel = opts.velocity ?? 0.5;
     const notes = [];
     midis.forEach((m, i) => {
       const sound = noteSound(m);
-      const src = ctx.createBufferSource();
+      const src = c.createBufferSource();
       src.buffer = sound.buffer;
       src.playbackRate.value = sound.rate;
-      const g = ctx.createGain();
+      const g = c.createGain();
       g.gain.value = vel * (1 - i * 0.04) * sound.gain;
-      src.connect(g).connect(bus);
+      src.connect(g).connect(graph.bus);
       src.start(t0 + i * spread, sound.offset);
       const note = { src, g };
       notes.push(note);
-      live.add(note);
-      src.onended = () => live.delete(note);
+      graph.notes.add(note);
+      src.onended = () => graph.notes.delete(note);
     });
     return {
       damp(when, release = 0.09) {
@@ -221,16 +255,53 @@
     };
   }
 
+  /**
+   * Lay a list of events out on a graph from `startAt`. Each event is
+   * { midis, beats, tempo?, style?, bar?, count? }: `bar: false` marks a chord that starts
+   * mid-bar (a passing chord), so the metronome does not accent it; `count: true` is a
+   * count-in bar, which clicks even when the metronome is off (and has no chord).
+   * style 'ring' strums once per chord, 'four' strums every beat (four to the bar).
+   * Returns the end time, when each event starts, and the last strum's handle.
+   */
+  function layout(graph, events, { startAt, tempo = 90, style = 'ring', clicks = false, clickGain = 0.5 }) {
+    let t = startAt, last = null, beat = 60 / tempo;
+    const starts = [];
+    events.forEach((ev) => {
+      beat = 60 / (ev.tempo || tempo);
+      const st = ev.style || style;
+      const n = Math.max(1, Math.round(ev.beats));
+      starts.push(t);
+      if (ev.midis && ev.midis.length) {
+        const strums = st === 'four' ? n : 1;
+        for (let k = 0; k < strums; k++) {
+          const at = t + k * beat;
+          if (last) last.damp(at - 0.01, st === 'four' ? 0.05 : 0.12);
+          last = strum(graph, ev.midis, at, {
+            spread: st === 'four' ? 0.012 : 0.024,
+            velocity: st === 'four' ? (k % 2 ? 0.36 : 0.45) : 0.5,
+          });
+        }
+      }
+      if (clicks || ev.count) {
+        for (let b = 0; b < n; b++) click(graph, t + b * beat, b === 0 && ev.bar !== false, clickGain);
+      }
+      t += ev.beats * beat;
+    });
+    return { end: t, starts, last, beat };
+  }
+
   let timers = [];
   let session = 0;
+  const stopListeners = [];
 
   function stopAll() {
     session++;
     timers.forEach(clearTimeout);
     timers = [];
+    stopListeners.forEach((cb) => cb());
     if (!ctx) return;
     const now = ctx.currentTime;
-    for (const n of live) {
+    for (const n of live.notes) {
       try {
         n.g.gain.cancelScheduledValues(now);
         n.g.gain.setValueAtTime(n.g.gain.value, now);
@@ -238,65 +309,106 @@
         n.src.stop(now + 0.08);
       } catch (e) { /* ignore */ }
     }
-    live.clear();
+    live.notes.clear();
   }
+
+  /** Called whenever playback stops (for any reason), so highlights can be cleared. */
+  function onStop(cb) { stopListeners.push(cb); }
 
   let single = null;
   function playChord(midis) {
     ensure();
     stopAll();
     if (single) single.damp(ctx.currentTime, 0.05);
-    single = strum(midis, ctx.currentTime + 0.02);
+    single = strum(live, midis, ctx.currentTime + 0.02);
   }
 
-  /**
-   * Play a list of events: [{ midis, beats, onStart }].
-   * style: 'ring' strums once per chord, 'four' strums every beat (four to the bar).
-   */
-  function playSequence(events, { tempo = 90, style = 'ring', loop = false, onDone } = {}) {
+  /** Play events (see layout) live: [{ midis, beats, onStart, ... }]. */
+  function playSequence(events, { tempo = 90, style = 'ring', loop = false, clicks = false, onDone } = {}) {
     ensure();
     stopAll();
     const my = session;
-    const beat = 60 / tempo;
 
     function pass(startAt) {
-      let t = startAt;
-      let prevHandle = null;
-      events.forEach((ev, i) => {
-        const dur = ev.beats * beat;
-        const strums = style === 'four' ? Math.max(1, Math.round(ev.beats)) : 1;
-        for (let k = 0; k < strums; k++) {
-          const at = t + k * beat;
-          if (prevHandle) prevHandle.damp(at - 0.01, style === 'four' ? 0.05 : 0.12);
-          prevHandle = strum(ev.midis, at, {
-            spread: style === 'four' ? 0.012 : 0.024,
-            velocity: style === 'four' ? (k % 2 ? 0.36 : 0.45) : 0.5,
-          });
-        }
-        const delay = Math.max(0, (t - ctx.currentTime) * 1000);
-        timers.push(setTimeout(() => { if (session === my) ev.onStart && ev.onStart(i); }, delay));
-        t += dur;
+      const { end, starts, last, beat } = layout(live, events, { startAt, tempo, style, clicks });
+      starts.forEach((at, i) => {
+        const delay = Math.max(0, (at - ctx.currentTime) * 1000);
+        timers.push(setTimeout(() => { if (session === my) events[i].onStart && events[i].onStart(i); }, delay));
       });
-      const endDelay = Math.max(0, (t - ctx.currentTime) * 1000);
+      const endDelay = Math.max(0, (end - ctx.currentTime) * 1000);
       if (loop) {
         timers.push(setTimeout(() => {
           if (session !== my) return;
-          if (prevHandle) prevHandle.damp(t - 0.01);
-          pass(t);
+          if (last) last.damp(end - 0.01);
+          pass(end);
         }, Math.max(0, endDelay - 250)));
       } else {
-        if (prevHandle) prevHandle.damp(t + beat * 1.5, 0.8);
+        if (last) last.damp(end + beat * 1.5, 0.8);
         timers.push(setTimeout(() => { if (session === my && onDone) onDone(); }, endDelay + 200));
       }
     }
     pass(ctx.currentTime + 0.12);
   }
 
+  /** How long a list of events lasts, in seconds. */
+  const seconds = (events, tempo = 90) => events.reduce((s, ev) => s + ev.beats * 60 / (ev.tempo || tempo), 0);
+
+  /**
+   * Render events to an AudioBuffer (stereo, at the live context's rate) with the same
+   * sound as playback, at full volume, plus a ring-out after the last chord.
+   */
+  async function render(events, { tempo = 90, style = 'ring', clicks = false } = {}) {
+    ensure();
+    const OAC = global.OfflineAudioContext || global.webkitOfflineAudioContext;
+    const lastBeat = 60 / ((events.length ? events[events.length - 1].tempo : 0) || tempo);
+    const lead = 0.05, tail = lastBeat * 1.5 + 1.8;
+    const total = lead + seconds(events, tempo) + tail;
+    const off = new OAC(2, Math.ceil(total * ctx.sampleRate), ctx.sampleRate);
+    const graph = makeGraph(off);
+    const { end, last, beat } = layout(graph, events, { startAt: lead, tempo, style, clicks });
+    if (last) last.damp(end + beat * 1.5, 0.8);
+    const buf = await off.startRendering();
+    const fade = Math.floor(buf.sampleRate * 0.25); // no click at the very end
+    for (let ch = 0; ch < buf.numberOfChannels; ch++) {
+      const d = buf.getChannelData(ch);
+      for (let i = 0; i < fade; i++) d[d.length - 1 - i] *= i / fade;
+    }
+    return buf;
+  }
+
+  /** An AudioBuffer (or anything with the same shape) as a 16-bit PCM WAV file. */
+  function encodeWav(buffer) {
+    const ch = buffer.numberOfChannels, n = buffer.length, sr = buffer.sampleRate;
+    const bytes = 44 + n * ch * 2;
+    const ab = new ArrayBuffer(bytes);
+    const v = new DataView(ab);
+    const str = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+    str(0, 'RIFF'); v.setUint32(4, bytes - 8, true); str(8, 'WAVE');
+    str(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, ch, true);
+    v.setUint32(24, sr, true); v.setUint32(28, sr * ch * 2, true); v.setUint16(32, ch * 2, true); v.setUint16(34, 16, true);
+    str(36, 'data'); v.setUint32(40, n * ch * 2, true);
+    const chans = [];
+    for (let c = 0; c < ch; c++) chans.push(buffer.getChannelData(c));
+    let o = 44;
+    for (let i = 0; i < n; i++) {
+      for (let c = 0; c < ch; c++) {
+        const x = Math.max(-1, Math.min(1, chans[c][i]));
+        v.setInt16(o, x < 0 ? x * 32768 : x * 32767, true);
+        o += 2;
+      }
+    }
+    return ab;
+  }
+
   /** Output volume, 0–1.5 (1 = normal). */
   function setVolume(v) {
     volumeLevel = v;
-    if (volume) volume.gain.setTargetAtTime(v, ctx.currentTime, 0.03);
+    if (live) live.volume.gain.setTargetAtTime(v, ctx.currentTime, 0.03);
   }
 
-  global.CCAudio = { ensure, playChord, playSequence, stopAll, setVolume, setVoice, loadSamples };
+  const sampleRate = () => (ctx ? ctx.sampleRate : 44100);
+
+  const api = { ensure, playChord, playSequence, stopAll, onStop, setVolume, setVoice, loadSamples, seconds, render, encodeWav, sampleRate };
+  global.CCAudio = api;
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

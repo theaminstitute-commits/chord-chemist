@@ -37,7 +37,7 @@ function samplesScript() {
 }
 
 (async () => {
-  const scripts = [samplesScript()].concat(['theory.js', 'voicings.js', 'audio.js', 'app.js']
+  const scripts = [samplesScript()].concat(['theory.js', 'voicings.js', 'audio.js', 'app.js', 'banks.js']
     .map((f) => `<script>\n${read(f)}</script>`)).join('\n');
   const png = (f) => 'data:image/png;base64,' + fs.readFileSync(path.join(SRC, f)).toString('base64');
   const page = read('index.html').replace('<!--STYLE-->', `<style>\n${read('style.css')}</style>`)

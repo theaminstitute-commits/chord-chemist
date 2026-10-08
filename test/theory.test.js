@@ -111,4 +111,26 @@ test('voice leading keeps the hand close', () => {
   assert.ok(V.distance(a, b) < 3, `moved ${V.distance(a, b)} from ${a.id} to ${b.id}`);
 });
 
+// Exported backing tracks: the WAV encoder and event timing (no audio hardware needed).
+const A = require('../src/audio.js');
+test('encodeWav writes a 16-bit PCM header and clamps samples', () => {
+  const buffer = { numberOfChannels: 2, length: 3, sampleRate: 44100, getChannelData: (c) => (c === 0 ? [0, 1, -2] : [0.5, -1, 0]) };
+  const v = new DataView(A.encodeWav(buffer));
+  const tag = (o) => String.fromCharCode(v.getUint8(o), v.getUint8(o + 1), v.getUint8(o + 2), v.getUint8(o + 3));
+  assert.equal(tag(0), 'RIFF'); assert.equal(tag(8), 'WAVE'); assert.equal(tag(12), 'fmt '); assert.equal(tag(36), 'data');
+  assert.equal(v.byteLength, 44 + 3 * 2 * 2);
+  assert.equal(v.getUint32(4, true), v.byteLength - 8);
+  assert.equal(v.getUint16(20, true), 1); // PCM
+  assert.equal(v.getUint16(22, true), 2);
+  assert.equal(v.getUint32(24, true), 44100);
+  assert.equal(v.getUint32(28, true), 44100 * 4);
+  assert.equal(v.getUint16(34, true), 16);
+  assert.equal(v.getUint32(40, true), 12);
+  assert.deepEqual([44, 46, 48, 50, 52, 54].map((o) => v.getInt16(o, true)), [0, 16383, 32767, -32768, -32768, 0]);
+});
+test('seconds follows each event’s own tempo', () => {
+  assert.equal(A.seconds([{ beats: 4, tempo: 120 }, { beats: 2, tempo: 60 }]), 4);
+  assert.equal(A.seconds([{ beats: 3 }], 90), 2);
+});
+
 console.log(`${passed} tests passed`);

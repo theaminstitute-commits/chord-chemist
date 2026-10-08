@@ -74,6 +74,22 @@
     </div>
   </section>
 
+  <section class="banks panel" aria-label="Backing-track banks">
+    <div class="banks-head">
+      <div>
+        <h2>Backing tracks</h2>
+        <p class="banks-sub">Store the chart in a bank, give it a tempo and a repeat count, then play it or export a WAV to solo over.</p>
+      </div>
+      <div class="set-row">
+        <button id="setPlay" class="btn btn-play" type="button" title="Play every bank in order, A to D">▶ Play set</button>
+        <label>Whole set <span class="stepper" id="setReps"><button type="button" data-d="-1" aria-label="Fewer set repeats">−</button><b id="setCount">×1</b><button type="button" data-d="1" aria-label="More set repeats">+</button></span></label>
+        <button id="setExport" class="btn" type="button" title="Export every bank in order as one WAV">⤓ Export set</button>
+        <small id="setInfo"></small>
+      </div>
+    </div>
+    <div class="bank-row" id="bankRow"></div>
+  </section>
+
   <section class="neck panel" aria-label="Fretboard">
     <div class="neck-head"><span>Fretboard</span><small id="neckNote">Solid notes sound now · rings show the next chord</small></div>
     <svg id="fretboard" viewBox="0 0 1000 176" role="img" aria-label="Guitar fretboard showing the current chord"></svg>
@@ -84,4 +100,32 @@
   <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC BY 3.0</a>.
 </footer>
 <div id="ghost" class="ghost" hidden></div>
+
+<dialog id="exportDlg" class="export" aria-labelledby="exportTitle">
+  <h2 id="exportTitle">Export backing track</h2>
+  <p class="export-what" id="exportWhat"></p>
+  <div class="export-opts">
+    <div class="field"><span>Count-in</span>
+      <div class="segmented compact" id="countIn" role="group" aria-label="Count-in">
+        <button class="seg" type="button" data-choice="0" aria-pressed="false">None</button>
+        <button class="seg" type="button" data-choice="1" aria-pressed="true">1 bar</button>
+        <button class="seg" type="button" data-choice="2" aria-pressed="false">2 bars</button>
+      </div>
+      <small>Clicks before the music starts, at the first bank's tempo.</small>
+    </div>
+    <div class="field"><span>Metronome</span>
+      <div class="segmented compact" id="metro" role="group" aria-label="Metronome">
+        <button class="seg" type="button" data-choice="off" aria-pressed="true">Off</button>
+        <button class="seg" type="button" data-choice="on" aria-pressed="false">On</button>
+      </div>
+      <small>A click on every beat under the guitar, accented on 1.</small>
+    </div>
+  </div>
+  <p class="export-file"><span id="exportName"></span><small id="exportSize"></small></p>
+  <p class="export-status" id="exportStatus" role="status" aria-live="polite"></p>
+  <div class="export-buttons">
+    <button id="exportCancel" class="btn" type="button">Cancel</button>
+    <button id="exportGo" class="btn btn-play" type="button">⤓ Download WAV</button>
+  </div>
+</dialog>
 <!--SCRIPTS-->
