@@ -33,7 +33,7 @@
       if (!d) return;
       banks.slots = LETTERS.map((_, i) => (valid(d.slots && d.slots[i]) ? d.slots[i] : null));
       banks.set = clamp(d.set || 1, 1, MAX_SET);
-      banks.countIn = clamp(d.countIn ?? 1, 0, 2);
+      banks.countIn = clamp(d.countIn ?? 1, 0, 1); // none, or one bar
       banks.metro = !!d.metro;
     } catch (e) { /* ignore a broken store */ }
   }
