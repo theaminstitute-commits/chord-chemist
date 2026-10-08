@@ -44,6 +44,7 @@ function samplesScript() {
   const png = (f) => 'data:image/png;base64,' + fs.readFileSync(path.join(SRC, f)).toString('base64');
   const page = read('index.html').replace('<!--STYLE-->', `<style>\n${read('style.css')}</style>`)
     .replace('<!--SPLASH-->', png('splash-light.png'))
+    .replace(/<!--NOTE-->/g, png('note.png'))
     .replace('<!--SCRIPTS-->', scripts);
   fs.mkdirSync(DIST, { recursive: true });
 

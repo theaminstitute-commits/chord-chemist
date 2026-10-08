@@ -4,15 +4,17 @@
 # With --raw dithering, tone 0/85/170/255 are the palette's four solid colours.
 #   dark (default): dark wall, light glassware -- for the dark theme
 #   --light:        paper wall, ink glassware, blue liquid and notes -- for the light theme
+#   --no-notes:     leave the notes out (the app animates them itself: tools/note-sprite.py)
 # Runs under Calibre's bundled Python/Qt:
 #   "C:\Program Files\Calibre2\calibre-debug.exe" -e tools\placeholder-lab.py -- art\placeholder-lab.png
-#   "C:\Program Files\Calibre2\calibre-debug.exe" -e tools\placeholder-lab.py -- art\placeholder-lab-light.png --light
+#   "C:\Program Files\Calibre2\calibre-debug.exe" -e tools\placeholder-lab.py -- art\placeholder-lab-light.png --light --no-notes
 import sys
 from qt.core import (QImage, QPainter, QColor, QPen, QBrush, QPainterPath, QPointF, QRectF,
                      QRadialGradient, QLinearGradient, Qt)
 
 W, H = 416, 436
 light = '--light' in sys.argv
+notes = '--no-notes' not in sys.argv
 out = [a for a in sys.argv if not a.startswith('--')][-1]
 
 # Tone of each part of the scene (0 = darkest palette colour, 255 = lightest).
@@ -185,10 +187,11 @@ def eighth_note(x, y, s):
     p.drawPath(flag)
     p.restore()
 
-eighth_note(236, 66, 1.0)
-eighth_note(286, 36, 0.8)
-eighth_note(132, 44, 0.7)
+if notes:
+    eighth_note(236, 66, 1.0)
+    eighth_note(286, 36, 0.8)
+    eighth_note(132, 44, 0.7)
 
 p.end()
 img.save(out)
-print(f"{out}: {W}x{H} ({'light' if light else 'dark'})")
+print(f"{out}: {W}x{H} ({'light' if light else 'dark'}{'' if notes else ', no notes'})")

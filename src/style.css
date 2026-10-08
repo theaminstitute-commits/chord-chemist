@@ -169,9 +169,29 @@ body:has(#splash:not(.gone)) { overflow: hidden; }
   background: var(--crt-screen); border: 3px solid var(--accent);
   box-shadow: 0 0 0 6px var(--surface-2), 0 0 0 7px var(--border-strong), var(--shadow);
 }
-.crt img {
+.crt .scene { position: relative; display: block; line-height: 0; overflow: hidden; border-radius: 6px; }
+.crt .picture {
   display: block; width: min(56vmin, 360px); max-width: 100%; height: auto; border-radius: 6px;
   image-rendering: pixelated; image-rendering: crisp-edges;
+}
+/* Notes float out of the flask's neck (its mouth is at 45.7% across, 23% down), drift and fade.
+   Sized and placed in percentages of the picture, so they scale with it. */
+.crt .note {
+  position: absolute; left: 40.4%; top: 12%; width: 10.6%; height: auto;
+  image-rendering: pixelated; image-rendering: crisp-edges; pointer-events: none;
+  opacity: 0; transform-origin: 50% 100%;
+}
+.crt .n1 { --dx: 130%; --s: 1; --d: 0s; }
+.crt .n2 { --dx: 250%; --s: 0.8; --d: 0.7s; }
+.crt .n3 { --dx: -120%; --s: 0.7; --d: 1.4s; }
+@media (prefers-reduced-motion: no-preference) {
+  .crt .note { animation: note-rise 2.1s steps(16, end) infinite; animation-delay: var(--d); }
+}
+@keyframes note-rise {
+  0% { opacity: 0; transform: translate(0, 0) scale(calc(var(--s) * 0.5)); }
+  15% { opacity: 1; transform: translate(calc(var(--dx) * 0.25), -45%) scale(var(--s)); }
+  70% { opacity: 1; transform: translate(calc(var(--dx) * 0.8), -135%) scale(var(--s)); }
+  100% { opacity: 0; transform: translate(var(--dx), -175%) scale(var(--s)); }
 }
 .crt::after {
   content: ""; position: absolute; inset: 12px; border-radius: 6px; pointer-events: none;
@@ -202,7 +222,7 @@ body:has(#splash:not(.gone)) { overflow: hidden; }
 /* Phones held sideways: picture on the left, title and bar on the right. */
 @media (max-height: 520px) and (min-width: 560px) {
   .splash { flex-direction: row; gap: 28px; }
-  .crt img { width: auto; height: calc(100vh - 80px); }
+  .crt .picture { width: auto; height: calc(100vh - 80px); }
   .splash-title { font-size: 40px; text-align: left; }
   .splash-title br { display: inline; }
   .splash-side { justify-items: start; }
@@ -675,6 +695,7 @@ html.theme-fade *::after {
   .card, .btn { transition: none; }
   .splash { transition: none; }
   .splash-bar::after { display: none; }
+  .crt .note { opacity: 1; transform: translate(var(--dx), -150%) scale(var(--s)); }
   .splash-note .cursor { animation: none; }
   html.theme-fade, html.theme-fade *, html.theme-fade *::before, html.theme-fade *::after { transition: none !important; }
   ::view-transition-old(root),
