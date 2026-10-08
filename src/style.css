@@ -174,18 +174,50 @@ body:has(#splash:not(.gone)) { overflow: hidden; }
   display: block; width: min(56vmin, 360px); max-width: 100%; height: auto; border-radius: 6px;
   image-rendering: pixelated; image-rendering: crisp-edges;
 }
-/* Notes float out of the flask's neck (its mouth is at 45.7% across, 23% down), drift and fade.
-   Sized and placed in percentages of the picture, so they scale with it. */
-.crt .note {
-  position: absolute; left: 40.4%; top: 12%; width: 10.6%; height: auto;
-  image-rendering: pixelated; image-rendering: crisp-edges; pointer-events: none;
-  opacity: 0; transform-origin: 50% 100%;
+/* The moving parts of the scene, each a small sprite sized and placed in percentages of the
+   picture so they scale with it, stepped like an old machine: bubbles climb inside the liquid,
+   the flame sways on the burner, and bubbles and notes float out of the flask's neck (its mouth
+   is at 45.7% across, 23% down). */
+.crt .scene img:not(.picture) {
+  position: absolute; height: auto; pointer-events: none;
+  image-rendering: pixelated; image-rendering: crisp-edges;
 }
+.crt .flame { left: 41.4%; top: 65.1%; width: 8.65%; transform-origin: 50% 100%; }
+.crt .drop { width: 2.9%; top: 57%; opacity: 0; }
+.crt .d1 { left: 39.5%; --dx: 30%; --d: 0s; }
+.crt .d2 { left: 47.9%; --dx: -25%; --d: 0.45s; }
+.crt .d3 { left: 43.8%; --dx: -20%; --d: 0.85s; }
+.crt .d4 { left: 50%; --dx: 25%; --d: 1.2s; }
+.crt .bubble { left: 43.3%; top: 21.7%; width: 4.8%; opacity: 0; transform-origin: 50% 50%; }
+.crt .b1 { --dx: 70%; --d: 0.2s; }
+.crt .b2 { --dx: -60%; --d: 0.9s; }
+.crt .b3 { --dx: 120%; --d: 1.5s; }
+.crt .note { left: 40.4%; top: 12%; width: 10.6%; opacity: 0; transform-origin: 50% 100%; }
 .crt .n1 { --dx: 130%; --s: 1; --d: 0s; }
 .crt .n2 { --dx: 250%; --s: 0.8; --d: 0.7s; }
 .crt .n3 { --dx: -120%; --s: 0.7; --d: 1.4s; }
 @media (prefers-reduced-motion: no-preference) {
+  .crt .flame { animation: flame-sway 0.9s steps(6, end) infinite alternate; }
+  .crt .drop { animation: drop-rise 1.5s steps(12, end) infinite; animation-delay: var(--d); }
+  .crt .bubble { animation: bubble-rise 2s steps(14, end) infinite; animation-delay: var(--d); }
   .crt .note { animation: note-rise 2.1s steps(16, end) infinite; animation-delay: var(--d); }
+}
+@keyframes flame-sway {
+  from { transform: rotate(-8deg) scaleY(1); }
+  50% { transform: rotate(0deg) scaleY(0.9); }
+  to { transform: rotate(8deg) scaleY(1); }
+}
+@keyframes drop-rise {
+  0% { opacity: 0; transform: translate(0, 0); }
+  10% { opacity: 1; transform: translate(calc(var(--dx) * 0.2), -45%); }
+  90% { opacity: 1; transform: translate(var(--dx), -420%); }
+  100% { opacity: 0; transform: translate(var(--dx), -440%); }
+}
+@keyframes bubble-rise {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.5); }
+  12% { opacity: 1; transform: translate(calc(var(--dx) * 0.2), -60%) scale(0.8); }
+  85% { opacity: 1; transform: translate(var(--dx), -300%) scale(1); }
+  100% { opacity: 0; transform: translate(var(--dx), -330%) scale(1.4); }
 }
 @keyframes note-rise {
   0% { opacity: 0; transform: translate(0, 0) scale(calc(var(--s) * 0.5)); }
@@ -696,6 +728,8 @@ html.theme-fade *::after {
   .splash { transition: none; }
   .splash-bar::after { display: none; }
   .crt .note { opacity: 1; transform: translate(var(--dx), -150%) scale(var(--s)); }
+  .crt .bubble { opacity: 1; transform: translate(calc(var(--dx) * 0.5), -180%); }
+  .crt .drop { opacity: 1; transform: translate(calc(var(--dx) * 0.5), -220%); }
   .splash-note .cursor { animation: none; }
   html.theme-fade, html.theme-fade *, html.theme-fade *::before, html.theme-fade *::after { transition: none !important; }
   ::view-transition-old(root),

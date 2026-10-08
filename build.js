@@ -45,6 +45,9 @@ function samplesScript() {
   const page = read('index.html').replace('<!--STYLE-->', `<style>\n${read('style.css')}</style>`)
     .replace('<!--SPLASH-->', png('splash-light.png'))
     .replace(/<!--NOTE-->/g, png('note.png'))
+    .replace(/<!--BUBBLE-->/g, png('bubble.png'))
+    .replace(/<!--DROP-->/g, png('drop.png'))
+    .replace(/<!--FLAME-->/g, png('flame.png'))
     .replace('<!--SCRIPTS-->', scripts);
   fs.mkdirSync(DIST, { recursive: true });
 

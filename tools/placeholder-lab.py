@@ -4,17 +4,18 @@
 # With --raw dithering, tone 0/85/170/255 are the palette's four solid colours.
 #   dark (default): dark wall, light glassware -- for the dark theme
 #   --light:        paper wall, ink glassware, blue liquid and notes -- for the light theme
-#   --no-notes:     leave the notes out (the app animates them itself: tools/note-sprite.py)
+#   --still:        leave out the moving parts (bubbles, flame, notes); the app animates
+#                   them itself from the sprites tools/splash-sprites.py draws
 # Runs under Calibre's bundled Python/Qt:
 #   "C:\Program Files\Calibre2\calibre-debug.exe" -e tools\placeholder-lab.py -- art\placeholder-lab.png
-#   "C:\Program Files\Calibre2\calibre-debug.exe" -e tools\placeholder-lab.py -- art\placeholder-lab-light.png --light --no-notes
+#   "C:\Program Files\Calibre2\calibre-debug.exe" -e tools\placeholder-lab.py -- art\placeholder-lab-light.png --light --still
 import sys
 from qt.core import (QImage, QPainter, QColor, QPen, QBrush, QPainterPath, QPointF, QRectF,
                      QRadialGradient, QLinearGradient, Qt)
 
 W, H = 416, 436
 light = '--light' in sys.argv
-notes = '--no-notes' not in sys.argv
+still = '--still' in sys.argv
 out = [a for a in sys.argv if not a.startswith('--')][-1]
 
 # Tone of each part of the scene (0 = darkest palette colour, 255 = lightest).
@@ -90,9 +91,10 @@ p.save()
 p.setClipPath(flask)
 p.fillRect(QRectF(0, 206, W, 200), grey(TONES['flask_liquid']))
 p.fillRect(QRectF(0, 204, W, 5), grey(TONES['meniscus']))
-for x, y, r in [(170, 250, 7), (205, 236, 5), (188, 268, 4), (214, 262, 6)]:
-    p.setBrush(grey(TONES['bubble_in']))
-    p.drawEllipse(QPointF(x, y), r, r)
+if not still:
+    for x, y, r in [(170, 250, 7), (205, 236, 5), (188, 268, 4), (214, 262, 6)]:
+        p.setBrush(grey(TONES['bubble_in']))
+        p.drawEllipse(QPointF(x, y), r, r)
 p.restore()
 p.setBrush(Qt.BrushStyle.NoBrush)
 p.setPen(glass)
@@ -106,18 +108,19 @@ p.setPen(no_pen)
 p.setBrush(grey(TONES['burner']))
 p.drawRect(QRectF(172, 334, 36, 26))
 p.drawRect(QRectF(164, 352, 52, 8))
-outer = QPainterPath()
-outer.moveTo(190, 288)
-outer.cubicTo(206, 306, 206, 326, 190, 332)
-outer.cubicTo(174, 326, 174, 306, 190, 288)
-p.setBrush(grey(TONES['flame']))
-p.drawPath(outer)
-inner = QPainterPath()
-inner.moveTo(190, 304)
-inner.cubicTo(198, 314, 198, 326, 190, 330)
-inner.cubicTo(182, 326, 182, 314, 190, 304)
-p.setBrush(grey(TONES['flame_core']))
-p.drawPath(inner)
+if not still:
+    outer = QPainterPath()
+    outer.moveTo(190, 288)
+    outer.cubicTo(206, 306, 206, 326, 190, 332)
+    outer.cubicTo(174, 326, 174, 306, 190, 288)
+    p.setBrush(grey(TONES['flame']))
+    p.drawPath(outer)
+    inner = QPainterPath()
+    inner.moveTo(190, 304)
+    inner.cubicTo(198, 314, 198, 326, 190, 330)
+    inner.cubicTo(182, 326, 182, 314, 190, 304)
+    p.setBrush(grey(TONES['flame_core']))
+    p.drawPath(inner)
 
 # Conical (Erlenmeyer) flask.
 cone = QPainterPath()
@@ -163,9 +166,10 @@ for x, level, shade in zip((361, 380, 399), (300, 318, 286), TONES['tubes']):
     p.drawPath(tube)
 
 # Bubbles rising out of the flask...
-p.setPen(QPen(grey(TONES['bubbles']), 4 if light else 3))
-for x, y, r in [(196, 88, 6), (184, 66, 4.5), (201, 46, 5)]:
-    p.drawEllipse(QPointF(x, y), r, r)
+if not still:
+    p.setPen(QPen(grey(TONES['bubbles']), 4 if light else 3))
+    for x, y, r in [(196, 88, 6), (184, 66, 4.5), (201, 46, 5)]:
+        p.drawEllipse(QPointF(x, y), r, r)
 
 # ...turning into music notes.
 def eighth_note(x, y, s):
@@ -187,11 +191,11 @@ def eighth_note(x, y, s):
     p.drawPath(flag)
     p.restore()
 
-if notes:
+if not still:
     eighth_note(236, 66, 1.0)
     eighth_note(286, 36, 0.8)
     eighth_note(132, 44, 0.7)
 
 p.end()
 img.save(out)
-print(f"{out}: {W}x{H} ({'light' if light else 'dark'}{'' if notes else ', no notes'})")
+print(f"{out}: {W}x{H} ({'light' if light else 'dark'}{', still' if still else ''})")
