@@ -151,7 +151,11 @@ public class MainActivity extends Activity {
         /** Closes the file and returns where it went, or null after a failure (see `error`). */
         String end() {
             try {
-                if (out != null) out.close();
+                if (out != null) {
+                    out.flush();
+                    if (out instanceof FileOutputStream) ((FileOutputStream) out).getFD().sync(); // on disk before we say so
+                    out.close();
+                }
             } catch (Exception e) {
                 fail(e);
             }

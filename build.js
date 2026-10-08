@@ -37,8 +37,10 @@ function samplesScript() {
 }
 
 (async () => {
-  const scripts = [samplesScript()].concat(['theory.js', 'voicings.js', 'audio.js', 'app.js', 'banks.js']
-    .map((f) => `<script>\n${read(f)}</script>`)).join('\n');
+  // lamejs (LGPL-3.0, see vendor/lamejs/LICENSE) encodes the exported backing tracks as MP3.
+  const lame = fs.readFileSync(path.join(__dirname, 'vendor', 'lamejs', 'lame.min.js'), 'utf8');
+  const scripts = [samplesScript(), `<script>\n${lame}\n</script>`]
+    .concat(['theory.js', 'voicings.js', 'audio.js', 'app.js', 'banks.js'].map((f) => `<script>\n${read(f)}</script>`)).join('\n');
   const png = (f) => 'data:image/png;base64,' + fs.readFileSync(path.join(SRC, f)).toString('base64');
   const page = read('index.html').replace('<!--STYLE-->', `<style>\n${read('style.css')}</style>`)
     .replace('<!--SPLASH-->', png('splash-light.png'))

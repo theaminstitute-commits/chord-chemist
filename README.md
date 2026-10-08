@@ -24,10 +24,10 @@ The loading-screen art is a placeholder drawn by tools/placeholder-lab.py --ligh
 the light theme's four colours by tools/cga-splash.py; the loading screen is light in both themes.
 
 **Backing tracks.** Store the chart in one of four banks (A–D), each with its own tempo and a
-×1–×8 repeat count; play a bank, or the whole set in order (itself ×1–×8), and export it as a
-16-bit WAV with an optional one-bar count-in and metronome, to solo over outside the app. The
-WAV is rendered offline with the same sound as playback. The Android app writes it to
-Download/Chord Chemist; browsers save it to their Downloads folder.
+×1–×8 repeat count; play a bank, or the whole set in order (itself ×1–×8), and export the set as
+an MP3 (lamejs, LGPL) or a 16-bit WAV with an optional one-bar count-in and metronome, to solo
+over outside the app. The track is rendered offline with the same sound as playback. The Android
+app writes it to Download/Chord Chemist; browsers save it to their Downloads folder.
 
 ## Layout
 
@@ -42,6 +42,7 @@ build.js          inlines everything into dist/chord-chemist.html (fonts embedde
 linux/            launcher, installer, and build-packages.sh (.deb + single-file .run)
 android/          WebView wrapper + build-apk.ps1 (no Gradle): dist/ChordChemist-v<ver>-test.apk
 samples/          jazz guitar samples (FluidR3 GM, CC BY 3.0 - see samples/NOTICE.md), embedded by build.js
+vendor/lamejs/    MP3 encoder (lamejs 1.2.1, LGPL-3.0), embedded by build.js
 test/             node test/theory.test.js
 ```
 

@@ -14,9 +14,10 @@
   const MAX_REPEATS = 8, MAX_SET = 8, MIN_TEMPO = 40, MAX_TEMPO = 240;
   const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, Math.round(+n) || lo));
 
-  const banks = { slots: [null, null, null, null], set: 1, countIn: 1, metro: false };
-  let playing = null;   // { bank, k }: which bank chord is sounding
-  let exporting = null; // { scope: 'bank' | 'set', bank } while the export dialog is open
+  const MP3_KBPS = 160;
+  const banks = { slots: [null, null, null, null], set: 1, countIn: 1, metro: false, format: 'mp3' };
+  let playing = null;    // { bank, k }: which bank chord is sounding
+  let exporting = false; // while the export dialog is open
 
   // ---------- persistence ----------
 
@@ -35,6 +36,7 @@
       banks.set = clamp(d.set || 1, 1, MAX_SET);
       banks.countIn = clamp(d.countIn ?? 1, 0, 1); // none, or one bar
       banks.metro = !!d.metro;
+      banks.format = d.format === 'wav' ? 'wav' : 'mp3';
     } catch (e) { /* ignore a broken store */ }
   }
 
@@ -147,7 +149,6 @@
       </div>
       <div class="bank-buttons">
         <button class="btn btn-play" type="button" data-act="play">▶ Play</button>
-        <button class="btn" type="button" data-act="export">⤓ Export</button>
         <button class="btn" type="button" data-act="open" title="Load this bank into the chart to edit it">Open in chart</button>
       </div>
     </article>`;
@@ -195,8 +196,6 @@
       renderBanks();
     } else if (act === 'play') {
       play(eventsFor(b, i, b.repeats), `Playing bank ${L} ×${b.repeats} at ${b.tempo} bpm: ${sheetText(b)}`);
-    } else if (act === 'export') {
-      openExport('bank', i);
     } else if (act === 'open') {
       App.open(b);
       App.say(`Bank ${L} is in the chart. Edit it there, then press ↻ on the bank to store the new version.`);
@@ -212,7 +211,7 @@
   });
 
   $('setPlay').addEventListener('click', () => play(setEvents(), `Playing the set: ${setLabel()}.`));
-  $('setExport').addEventListener('click', () => openExport('set'));
+  $('setExport').addEventListener('click', openExport);
   $('setReps').addEventListener('click', (e) => {
     const b = e.target.closest('[data-d]');
     if (!b) return;
@@ -221,24 +220,14 @@
     renderBanks();
   });
 
-  // ---------- export ----------
+  // ---------- export: the whole set, as MP3 or WAV ----------
 
   const dlg = $('exportDlg');
 
-  function exportMusic() {
-    if (exporting.scope === 'bank') {
-      const b = banks.slots[exporting.bank];
-      return { first: b, events: eventsFor(b, exporting.bank, b.repeats) };
-    }
-    return { first: banks.slots[filled()[0]], events: setEvents() };
-  }
+  const setMusic = () => ({ first: banks.slots[filled()[0]], events: setEvents() });
   function fileName() {
     const safe = (s) => s.replace(/[\\/:*?"<>|]+/g, '-');
-    if (exporting.scope === 'bank') {
-      const b = banks.slots[exporting.bank], k = keyOf(b);
-      return safe(`Chord Chemist - Bank ${LETTERS[exporting.bank]} - ${b.tpl} in ${k.tonic} ${k.mode} - ${b.tempo} bpm.wav`);
-    }
-    return safe(`Chord Chemist - Set ${filled().map((i) => LETTERS[i]).join('')}${banks.set > 1 ? ' x' + banks.set : ''}.wav`);
+    return safe(`Chord Chemist - Set ${filled().map((i) => LETTERS[i]).join('')}${banks.set > 1 ? ' x' + banks.set : ''}.${banks.format}`);
   }
   function markSeg(id, choice) {
     $(id).querySelectorAll('[data-choice]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.choice === choice)));
@@ -249,20 +238,23 @@
     el.classList.toggle('bad', !!bad);
   }
   function describeExport() {
-    const { first, events } = exportMusic();
+    const { first, events } = setMusic();
     const music = A.seconds(events);
     const total = music + banks.countIn * first.beats * 60 / first.tempo + 2.5; // + the ring-out
-    $('exportWhat').textContent = exporting.scope === 'bank'
-      ? `Bank ${LETTERS[exporting.bank]} · ${bankName(first)} · ${first.tempo} bpm · ×${first.repeats} · ${clock(music)}`
-      : `The whole set, ${setLabel()} · ${clock(music)}`;
+    $('exportWhat').textContent = `${setLabel()} · ${clock(music)}`;
+    markSeg('format', banks.format);
     markSeg('countIn', String(banks.countIn));
     markSeg('metro', banks.metro ? 'on' : 'off');
     $('exportName').textContent = fileName();
-    const mb = total * A.sampleRate() * 4 / 1048576;
-    $('exportSize').textContent = `16-bit stereo WAV, ${$('voice').value === 'synth' ? 'plucked synth' : 'jazz guitar'} · about ${mb < 10 ? mb.toFixed(1) : Math.round(mb)} MB`;
+    const mp3 = banks.format === 'mp3';
+    const mb = (mp3 ? total * MP3_KBPS * 125 : total * A.sampleRate() * 4) / 1048576;
+    const sound = $('voice').value === 'synth' ? 'plucked synth' : 'jazz guitar';
+    $('exportSize').textContent = `${mp3 ? `MP3, ${MP3_KBPS} kbps stereo` : '16-bit stereo WAV'}, ${sound} · about ${mb < 10 ? mb.toFixed(1) : Math.round(mb)} MB`;
+    $('exportGo').textContent = `⤓ Download ${banks.format.toUpperCase()}`;
   }
-  function openExport(scope, bank) {
-    exporting = { scope, bank };
+  function openExport() {
+    if (!filled().length) return;
+    exporting = true;
     A.ensure();
     describeExport();
     status('');
@@ -284,11 +276,18 @@
     save();
     describeExport();
   });
+  $('format').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-choice]');
+    if (!b || !exporting) return;
+    banks.format = b.dataset.choice === 'wav' ? 'wav' : 'mp3';
+    save();
+    describeExport();
+  });
   $('exportCancel').addEventListener('click', () => dlg.close());
-  dlg.addEventListener('close', () => { exporting = null; });
+  dlg.addEventListener('close', () => { exporting = false; });
   $('exportGo').addEventListener('click', async () => {
     if (!exporting) return;
-    const { first, events } = exportMusic();
+    const { first, events } = setMusic();
     const all = countInEvents(banks.countIn, first).concat(events);
     const name = fileName();
     $('exportGo').disabled = true;
@@ -296,17 +295,48 @@
     status('Rendering…');
     try {
       const buf = await A.render(all, { clicks: banks.metro });
+      const blob = banks.format === 'mp3'
+        ? await encodeMp3(buf, (p) => status(`Encoding MP3… ${Math.round(p * 100)}%`))
+        : new Blob([A.encodeWav(buf)], { type: 'audio/wav' });
       status('Saving…');
-      status(await download(new Blob([A.encodeWav(buf)], { type: 'audio/wav' }), name));
+      status(await download(blob, name));
     } catch (e) {
       status(`Export failed: ${e.message || e}`, true);
     }
     $('exportGo').disabled = false;
   });
 
+  /** MP3 through lamejs (LGPL), about a second of audio per step so the page stays responsive. */
+  async function encodeMp3(buffer, onProgress) {
+    const lame = window.lamejs;
+    if (!lame) throw new Error('the MP3 encoder did not load');
+    const channels = Math.min(2, buffer.numberOfChannels);
+    const enc = new lame.Mp3Encoder(channels, buffer.sampleRate, MP3_KBPS);
+    const pcm = (f32) => {
+      const out = new Int16Array(f32.length);
+      for (let i = 0; i < f32.length; i++) {
+        const x = Math.max(-1, Math.min(1, f32[i]));
+        out[i] = x < 0 ? x * 32768 : x * 32767;
+      }
+      return out;
+    };
+    const left = pcm(buffer.getChannelData(0)), right = channels > 1 ? pcm(buffer.getChannelData(1)) : null;
+    const parts = [], step = 1152 * 40;
+    for (let i = 0; i < left.length; i += step) {
+      const l = left.subarray(i, i + step);
+      const out = right ? enc.encodeBuffer(l, right.subarray(i, i + step)) : enc.encodeBuffer(l);
+      if (out.length) parts.push(out);
+      onProgress(Math.min(1, (i + step) / left.length));
+      await new Promise((r) => setTimeout(r, 0));
+    }
+    const tail = enc.flush();
+    if (tail.length) parts.push(tail);
+    return new Blob(parts, { type: 'audio/mpeg' });
+  }
+
   /**
    * Hand the file to the browser's download, to the Android app (which writes it to Downloads),
-   * or to the claude.ai artifact viewer, which only saves certain file types: there the WAV goes
+   * or to the claude.ai artifact viewer, which only saves certain file types: there the track goes
    * inside a zip.
    */
   async function download(blob, name) {
@@ -314,9 +344,9 @@
     if (android && android.beginFile) return androidSave(android, blob, name);
     const viewer = window.claude && typeof window.claude.use === 'function' ? await window.claude.use('downloads') : null;
     if (viewer) {
-      const zipName = name.replace(/\.wav$/i, '.zip');
+      const zipName = name.replace(/\.(wav|mp3)$/i, '.zip');
       await viewer.save({ filename: zipName, data: zipStore(name, new Uint8Array(await blob.arrayBuffer())) });
-      return `Saved as ${zipName} — unzip it to get the WAV.`;
+      return `Saved as ${zipName} — unzip it to get the track.`;
     }
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -374,7 +404,7 @@
         else reject(new Error(where));
       };
       (async () => {
-        android.beginFile(name, 'audio/wav');
+        android.beginFile(name, blob.type || 'application/octet-stream');
         const CHUNK = 1 << 20; // 1 MiB of audio per call across the bridge
         for (let i = 0; i < blob.size; i += CHUNK) android.appendFile(await base64(blob.slice(i, i + CHUNK)));
         android.endFile();
