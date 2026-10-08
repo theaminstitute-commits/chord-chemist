@@ -12,8 +12,12 @@
   let volumeLevel = 1;
   const bufferCache = new Map();
 
-  /** The signal chain on a context: guitar bus → body → reverb → level chain → out. */
-  function makeGraph(c) {
+  /**
+   * The signal chain on a context: guitar bus → body → reverb → level chain → out.
+   * The soft ceiling that keeps live playback from clipping rounds off every pluck transient
+   * (faintly gritty in a file), so an export leaves it out and is peak-normalised afterwards.
+   */
+  function makeGraph(c, { softCeiling = true } = {}) {
     // Level chain: gentle compression, make-up gain, then a hard limiter so the
     // louder output never clips.
     const master = c.createGain();
@@ -44,7 +48,9 @@
     }
     ceiling.curve = curve;
     ceiling.oversample = '2x';
-    master.connect(comp).connect(makeup).connect(volume).connect(limiter).connect(ceiling).connect(c.destination);
+    const out = master.connect(comp).connect(makeup).connect(volume).connect(limiter);
+    if (softCeiling) out.connect(ceiling).connect(c.destination);
+    else out.connect(c.destination);
 
     // Body: soften the top end and add a little low-mid wood.
     const body = c.createBiquadFilter();
@@ -355,7 +361,7 @@
 
   /**
    * Render events to an AudioBuffer (stereo, at the live context's rate) with the same
-   * sound as playback, at full volume, plus a ring-out after the last chord.
+   * sound as playback, plus a ring-out after the last chord, peak-normalised to -1 dBFS.
    */
   async function render(events, { tempo = 90, style = 'ring', clicks = false } = {}) {
     ensure();
@@ -364,16 +370,37 @@
     const lead = 0.05, tail = lastBeat * 1.5 + 1.8;
     const total = lead + seconds(events, tempo) + tail;
     const off = new OAC(2, Math.ceil(total * ctx.sampleRate), ctx.sampleRate);
-    const graph = makeGraph(off);
+    const graph = makeGraph(off, { softCeiling: false });
     const { end, last, beat } = layout(graph, events, { startAt: lead, tempo, style, clicks });
     if (last) last.damp(end + beat * 1.5, 0.8);
     const buf = await off.startRendering();
     const fade = Math.floor(buf.sampleRate * 0.25); // no click at the very end
+    let peak = 0;
     for (let ch = 0; ch < buf.numberOfChannels; ch++) {
       const d = buf.getChannelData(ch);
       for (let i = 0; i < fade; i++) d[d.length - 1 - i] *= i / fade;
+      for (let i = 0; i < d.length; i++) peak = Math.max(peak, Math.abs(d[i]));
+    }
+    const gain = peak > 0.01 ? Math.min(4, 0.891 / peak) : 1; // -1 dBFS; never boosting silence
+    for (let ch = 0; ch < buf.numberOfChannels; ch++) {
+      const d = buf.getChannelData(ch);
+      for (let i = 0; i < d.length; i++) d[i] *= gain;
     }
     return buf;
+  }
+
+  /** 16-bit samples per channel, rounded with TPDF dither so quiet tails do not turn grainy. */
+  function pcm16(buffer) {
+    const out = [];
+    for (let c = 0; c < buffer.numberOfChannels; c++) {
+      const f = buffer.getChannelData(c), s = new Int16Array(f.length);
+      for (let i = 0; i < f.length; i++) {
+        const dither = (Math.random() - Math.random()) / 32768; // triangular, ±1 LSB
+        s[i] = Math.max(-32768, Math.min(32767, Math.round((f[i] + dither) * 32767)));
+      }
+      out.push(s);
+    }
+    return out;
   }
 
   /** An AudioBuffer (or anything with the same shape) as a 16-bit PCM WAV file. */
@@ -387,13 +414,11 @@
     str(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, ch, true);
     v.setUint32(24, sr, true); v.setUint32(28, sr * ch * 2, true); v.setUint16(32, ch * 2, true); v.setUint16(34, 16, true);
     str(36, 'data'); v.setUint32(40, n * ch * 2, true);
-    const chans = [];
-    for (let c = 0; c < ch; c++) chans.push(buffer.getChannelData(c));
+    const chans = pcm16(buffer);
     let o = 44;
     for (let i = 0; i < n; i++) {
       for (let c = 0; c < ch; c++) {
-        const x = Math.max(-1, Math.min(1, chans[c][i]));
-        v.setInt16(o, x < 0 ? x * 32768 : x * 32767, true);
+        v.setInt16(o, chans[c][i], true);
         o += 2;
       }
     }
@@ -408,7 +433,7 @@
 
   const sampleRate = () => (ctx ? ctx.sampleRate : 44100);
 
-  const api = { ensure, playChord, playSequence, stopAll, onStop, setVolume, setVoice, loadSamples, seconds, render, encodeWav, sampleRate };
+  const api = { ensure, playChord, playSequence, stopAll, onStop, setVolume, setVoice, loadSamples, seconds, render, pcm16, encodeWav, sampleRate };
   global.CCAudio = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

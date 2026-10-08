@@ -312,15 +312,7 @@
     if (!lame) throw new Error('the MP3 encoder did not load');
     const channels = Math.min(2, buffer.numberOfChannels);
     const enc = new lame.Mp3Encoder(channels, buffer.sampleRate, MP3_KBPS);
-    const pcm = (f32) => {
-      const out = new Int16Array(f32.length);
-      for (let i = 0; i < f32.length; i++) {
-        const x = Math.max(-1, Math.min(1, f32[i]));
-        out[i] = x < 0 ? x * 32768 : x * 32767;
-      }
-      return out;
-    };
-    const left = pcm(buffer.getChannelData(0)), right = channels > 1 ? pcm(buffer.getChannelData(1)) : null;
+    const [left, right = null] = A.pcm16(buffer);
     const parts = [], step = 1152 * 40;
     for (let i = 0; i < left.length; i += step) {
       const l = left.subarray(i, i + step);

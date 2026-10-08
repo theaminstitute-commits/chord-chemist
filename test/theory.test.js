@@ -126,7 +126,16 @@ test('encodeWav writes a 16-bit PCM header and clamps samples', () => {
   assert.equal(v.getUint32(28, true), 44100 * 4);
   assert.equal(v.getUint16(34, true), 16);
   assert.equal(v.getUint32(40, true), 12);
-  assert.deepEqual([44, 46, 48, 50, 52, 54].map((o) => v.getInt16(o, true)), [0, 16383, 32767, -32768, -32768, 0]);
+  // Interleaved L R L R L R; dither moves unclamped values by at most one step.
+  const got = [44, 46, 48, 50, 52, 54].map((o) => v.getInt16(o, true));
+  [0, 16384, 32767, -32768, -32768, 0].forEach((want, i) => assert.ok(Math.abs(got[i] - want) <= 1, `sample ${i}: ${got[i]} vs ${want}`));
+});
+test('pcm16 dithers without ever clipping', () => {
+  const f = new Float32Array(2000).map((_, i) => Math.sin(i / 7) * 1.2);
+  const [s] = A.pcm16({ numberOfChannels: 1, getChannelData: () => f });
+  assert.equal(Math.max(...s), 32767);
+  assert.equal(Math.min(...s), -32768);
+  assert.ok(Math.abs(s[0]) <= 1);
 });
 test('seconds follows each event’s own tempo', () => {
   assert.equal(A.seconds([{ beats: 4, tempo: 120 }, { beats: 2, tempo: 60 }]), 4);
