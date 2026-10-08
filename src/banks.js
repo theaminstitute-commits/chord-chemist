@@ -248,7 +248,7 @@
     $('exportName').textContent = fileName();
     const mp3 = banks.format === 'mp3';
     const mb = (mp3 ? total * MP3_KBPS * 125 : total * A.sampleRate() * 4) / 1048576;
-    const sound = $('voice').value === 'synth' ? 'plucked synth' : 'jazz guitar';
+    const sound = $('voice').value === 'choir' ? 'choir' : 'jazz guitar';
     $('exportSize').textContent = `${mp3 ? `MP3, ${MP3_KBPS} kbps stereo` : '16-bit stereo WAV'}, ${sound} · about ${mb < 10 ? mb.toFixed(1) : Math.round(mb)} MB`;
     $('exportGo').textContent = `⤓ Download ${banks.format.toUpperCase()}`;
   }

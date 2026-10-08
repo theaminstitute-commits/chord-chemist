@@ -1,16 +1,15 @@
-/* Chord Chemist — plucked-string synth, sampled jazz guitar, progression scheduler and
+/* Chord Chemist — sampled jazz guitar, a formant choir, the progression scheduler and
  * offline rendering (exported backing tracks).
  *
- * Each string is a Karplus–Strong plucked string rendered once per pitch and
- * cached, run through a warm body filter and a short room reverb. The same
- * signal chain is built on an OfflineAudioContext to render a WAV.
+ * The guitar is one recording per note through a warm body filter and a short room
+ * reverb; the choir is synthesised (see sing) and sings into a longer hall. The same
+ * signal chain is built on an OfflineAudioContext to render a file.
  */
 (function (global) {
   'use strict';
 
   let ctx = null, live = null; // live: the signal chain on the real-time context
   let volumeLevel = 1;
-  const bufferCache = new Map();
 
   /**
    * The signal chain on a context: guitar bus → body → reverb → level chain → out.
@@ -73,7 +72,23 @@
     verb.buffer = roomImpulse(c, 1.6);
     body.connect(dry).connect(master);
     body.connect(verb).connect(wet).connect(master);
-    return { ctx: c, master, bus, volume, notes: new Set() };
+
+    // The choir sings into its own hall: no guitar body, a longer and wetter reverb.
+    const choir = c.createGain();
+    const air = c.createBiquadFilter();
+    air.type = 'lowpass';
+    air.frequency.value = 6500;
+    air.Q.value = 0.4;
+    const choirDry = c.createGain();
+    choirDry.gain.value = 0.7;
+    const choirWet = c.createGain();
+    choirWet.gain.value = 0.5;
+    const hall = c.createConvolver();
+    hall.buffer = roomImpulse(c, 2.8);
+    choir.connect(air);
+    air.connect(choirDry).connect(master);
+    air.connect(hall).connect(choirWet).connect(master);
+    return { ctx: c, master, bus, choir, volume, notes: new Set() };
   }
 
   function ensure() {
@@ -98,44 +113,71 @@
     return buf;
   }
 
-  /** Karplus–Strong string with an allpass for exact tuning. */
-  function pluckBuffer(midi) {
-    if (bufferCache.has(midi)) return bufferCache.get(midi);
-    const sr = ctx.sampleRate;
-    const freq = 440 * Math.pow(2, (midi - 69) / 12);
-    const period = sr / freq - 0.5; // the averaging filter adds half a sample
-    const N = Math.floor(period - 0.1);
-    const frac = period - N;
-    const C = (1 - frac) / (1 + frac);
-    const seconds = midi < 52 ? 4.2 : midi < 64 ? 3.4 : 2.6;
-    const len = Math.floor(sr * seconds);
-    const buf = ctx.createBuffer(1, len, sr);
-    const out = buf.getChannelData(0);
+  // ---------- choir ----------
+  // "Ah" sung by a small section: three slightly detuned sawtooths per voice, shaped by the
+  // vowel's three formant band-passes plus a low "chest" path for the fundamental, with a slow
+  // swell in, delayed vibrato at a slightly different rate per voice, and a long hall.
+  const FORMANTS = [[750, 1.0, 8], [1150, 0.5, 10], [2700, 0.2, 16]]; // Hz, level, Q
+  const CHOIR_GAIN = 0.6; // a sustained pad reads louder than plucks: this sits level with the guitar
 
-    // Excitation: filtered noise gives a thumb-and-pick attack rather than a harsh one.
-    const ring = new Float32Array(N);
-    let lp = 0;
-    for (let i = 0; i < N; i++) {
-      lp = lp * 0.35 + (Math.random() * 2 - 1) * 0.65;
-      ring[i] = lp;
+  function sing(graph, midi, t0, velocity) {
+    const c = graph.ctx;
+    const freq = 440 * Math.pow(2, (midi - 69) / 12);
+    const peak = velocity * CHOIR_GAIN;
+    const env = c.createGain();
+    env.gain.setValueAtTime(0, t0);
+    env.gain.linearRampToValueAtTime(peak, t0 + 0.32);
+    env.gain.linearRampToValueAtTime(peak * 0.85, t0 + 1.0);
+    env.connect(graph.choir);
+
+    const vibrato = c.createOscillator();
+    vibrato.frequency.value = 4.8 + Math.random() * 1.2;
+    const depth = c.createGain(); // cents
+    depth.gain.setValueAtTime(0, t0);
+    depth.gain.linearRampToValueAtTime(7, t0 + 0.9);
+    vibrato.connect(depth);
+    const source = c.createGain();
+    source.gain.value = 0.34;
+    const oscs = [-7, 0, 7].map((cents) => {
+      const o = c.createOscillator();
+      o.type = 'sawtooth';
+      o.frequency.value = freq;
+      o.detune.value = cents;
+      depth.connect(o.detune);
+      o.connect(source);
+      return o;
+    });
+    for (const [f, level, q] of FORMANTS) {
+      const formant = c.createBiquadFilter();
+      formant.type = 'bandpass';
+      formant.frequency.value = f;
+      formant.Q.value = q;
+      const g = c.createGain();
+      g.gain.value = level;
+      source.connect(formant).connect(g).connect(env);
     }
-    const damp = midi < 52 ? 0.9985 : midi < 64 ? 0.998 : 0.9978;
-    let idx = 0, prev = 0, apX = 0, apY = 0;
-    for (let i = 0; i < len; i++) {
-      const x = ring[idx];
-      const avg = 0.5 * (x + prev) * damp;
-      prev = x;
-      const y = C * avg + apX - C * apY; // fractional-delay allpass
-      apX = avg;
-      apY = y;
-      ring[idx] = y;
-      out[i] = x;
-      idx = idx + 1 === N ? 0 : idx + 1;
-    }
-    const fade = Math.floor(sr * 0.08);
-    for (let i = 0; i < fade; i++) out[len - 1 - i] *= i / fade;
-    bufferCache.set(midi, buf);
-    return buf;
+    const chest = c.createBiquadFilter();
+    chest.type = 'lowpass';
+    chest.frequency.value = 420;
+    chest.Q.value = 0.7;
+    const chestGain = c.createGain();
+    chestGain.gain.value = 0.55;
+    source.connect(chest).connect(chestGain).connect(env);
+
+    const nodes = [vibrato, ...oscs];
+    nodes.forEach((n) => n.start(t0));
+    const stop = (t) => nodes.forEach((n) => { try { n.stop(t); } catch (e) { /* already stopped */ } });
+    const note = {
+      g: env,
+      stop,
+      damp(when, release) {
+        const r = Math.max(release, 0.25); // a choir never stops dead
+        env.gain.setTargetAtTime(0, when, r / 4);
+        stop(when + r + 0.3);
+      },
+    };
+    oscs[0].onended = () => graph.notes.delete(note);
+    return note;
   }
 
   // ---------- metronome ----------
@@ -212,50 +254,61 @@
     return samplesReady;
   }
 
-  /** The sound for one note: the jazz guitar sample (nearest one, re-pitched, if needed), else the synth. */
+  /** The jazz guitar sample for one note: the nearest recording, re-pitched if needed. */
   function noteSound(midi) {
-    if (voice === 'jazz' && sampleBuffers.size) {
-      let key = midi;
-      if (!sampleBuffers.has(key)) {
-        key = [...sampleBuffers.keys()].reduce((a, b) => (Math.abs(b - midi) < Math.abs(a - midi) ? b : a));
-      }
-      const s = sampleBuffers.get(key);
-      return { buffer: s.buffer, offset: s.offset, rate: Math.pow(2, (midi - key) / 12), gain: SAMPLE_GAIN };
+    let key = midi;
+    if (!sampleBuffers.has(key)) {
+      key = [...sampleBuffers.keys()].reduce((a, b) => (Math.abs(b - midi) < Math.abs(a - midi) ? b : a));
     }
-    return { buffer: pluckBuffer(midi), offset: 0, rate: 1, gain: 1 };
+    const s = sampleBuffers.get(key);
+    return { buffer: s.buffer, offset: s.offset, rate: Math.pow(2, (midi - key) / 12), gain: SAMPLE_GAIN };
   }
 
-  function setVoice(v) { voice = v === 'synth' ? 'synth' : 'jazz'; }
+  function pluck(graph, midi, t0, gain) {
+    const c = graph.ctx;
+    const sound = noteSound(midi);
+    const src = c.createBufferSource();
+    src.buffer = sound.buffer;
+    src.playbackRate.value = sound.rate;
+    const g = c.createGain();
+    g.gain.value = gain * sound.gain;
+    src.connect(g).connect(graph.bus);
+    src.start(t0, sound.offset);
+    const note = {
+      g,
+      stop: (t) => { try { src.stop(t); } catch (e) { /* already stopped */ } },
+      damp(when, release) {
+        g.gain.setValueAtTime(g.gain.value, when);
+        g.gain.linearRampToValueAtTime(0, when + release);
+        note.stop(when + release + 0.02);
+      },
+    };
+    src.onended = () => graph.notes.delete(note);
+    return note;
+  }
 
-  /** Strum a voicing (MIDI notes low to high) on a graph at time `at`; returns a handle to damp it. */
+  function setVoice(v) { voice = v === 'choir' ? 'choir' : 'jazz'; }
+
+  /**
+   * Sound a voicing (MIDI notes low to high) on a graph at time `at`: the guitar strums it,
+   * the choir swells in on every note at once. Returns a handle to damp it.
+   */
   function strum(graph, midis, at, opts = {}) {
     const c = graph.ctx;
     const t0 = Math.max(at ?? c.currentTime, c.currentTime);
-    const spread = opts.spread ?? 0.022;
     const vel = opts.velocity ?? 0.5;
     const notes = [];
-    midis.forEach((m, i) => {
-      const sound = noteSound(m);
-      const src = c.createBufferSource();
-      src.buffer = sound.buffer;
-      src.playbackRate.value = sound.rate;
-      const g = c.createGain();
-      g.gain.value = vel * (1 - i * 0.04) * sound.gain;
-      src.connect(g).connect(graph.bus);
-      src.start(t0 + i * spread, sound.offset);
-      const note = { src, g };
-      notes.push(note);
-      graph.notes.add(note);
-      src.onended = () => graph.notes.delete(note);
-    });
+    if (voice === 'choir' || !sampleBuffers.size) {
+      midis.forEach((m) => notes.push(sing(graph, m, t0, vel)));
+    } else {
+      const spread = opts.spread ?? 0.022;
+      midis.forEach((m, i) => notes.push(pluck(graph, m, t0 + i * spread, vel * (1 - i * 0.04))));
+    }
+    notes.forEach((n) => graph.notes.add(n));
     return {
       damp(when, release = 0.09) {
         for (const n of notes) {
-          try {
-            n.g.gain.setValueAtTime(n.g.gain.value, when);
-            n.g.gain.linearRampToValueAtTime(0, when + release);
-            n.src.stop(when + release + 0.02);
-          } catch (e) { /* already stopped */ }
+          try { n.damp(when, release); } catch (e) { /* already stopped */ }
         }
       },
     };
@@ -312,7 +365,7 @@
         n.g.gain.cancelScheduledValues(now);
         n.g.gain.setValueAtTime(n.g.gain.value, now);
         n.g.gain.linearRampToValueAtTime(0, now + 0.06);
-        n.src.stop(now + 0.08);
+        n.stop(now + 0.08);
       } catch (e) { /* ignore */ }
     }
     live.notes.clear();
@@ -375,12 +428,13 @@
     if (last) last.damp(end + beat * 1.5, 0.8);
     const buf = await off.startRendering();
     const fade = Math.floor(buf.sampleRate * 0.25); // no click at the very end
-    let peak = 0;
+    let peak = 0, power = 0;
     for (let ch = 0; ch < buf.numberOfChannels; ch++) {
       const d = buf.getChannelData(ch);
       for (let i = 0; i < fade; i++) d[d.length - 1 - i] *= i / fade;
-      for (let i = 0; i < d.length; i++) peak = Math.max(peak, Math.abs(d[i]));
+      for (let i = 0; i < d.length; i++) { peak = Math.max(peak, Math.abs(d[i])); power += d[i] * d[i]; }
     }
+    buf.rendered = { peak, rms: Math.sqrt(power / (buf.length * buf.numberOfChannels)) }; // as it came off the chain
     const gain = peak > 0.01 ? Math.min(4, 0.891 / peak) : 1; // -1 dBFS; never boosting silence
     for (let ch = 0; ch < buf.numberOfChannels; ch++) {
       const d = buf.getChannelData(ch);

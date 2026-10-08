@@ -47,7 +47,7 @@
       });
       $('tempo').value = d.tempo || 88;
       $('volume').value = d.volume ?? 100;
-      $('voice').value = d.voice === 'synth' ? 'synth' : 'jazz';
+      $('voice').value = d.voice === 'choir' ? 'choir' : 'jazz';
       $('beats').value = d.beats || '4';
       $('style').value = d.style || 'ring';
       $('loop').checked = !!d.loop;

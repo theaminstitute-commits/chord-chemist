@@ -19,7 +19,8 @@ Change a later bar and any earlier chord that no longer resolves is struck throu
 Voicings are generated systematically: 3 or 4 chord tones on a string set, every inversion up
 the neck, filtered to what a hand can reach, plus E- and A-form barres. "Smooth voicings"
 re-picks them so the hand moves as little as possible. Playback uses sampled jazz guitar
-(see samples/NOTICE.md), with a Karplus–Strong plucked-string synth as the alternative sound.
+(see samples/NOTICE.md) or a synthesised choir (detuned sawtooths through the vowel's formant
+filters, with delayed vibrato and a long hall).
 The loading-screen art is a placeholder drawn by tools/placeholder-lab.py --light and dithered to
 the light theme's four colours by tools/cga-splash.py; the loading screen is light in both themes.
 
@@ -34,7 +35,7 @@ app writes it to Download/Chord Chemist; browsers save it to their Downloads fol
 ```
 src/theory.js     chord formulas, keys, progression templates, legality rules
 src/voicings.js   voicing generator and voice-leading choice
-src/audio.js      plucked-string synth, sampled guitar, playback scheduler, offline WAV rendering
+src/audio.js      sampled guitar, formant choir, playback scheduler, offline rendering
 src/app.js        UI: directory, chart, diagrams, fretboard, drag & drop
 src/banks.js      backing-track banks: store, play and export the chart
 src/style.css     vintage card-catalog look (light + dark)
