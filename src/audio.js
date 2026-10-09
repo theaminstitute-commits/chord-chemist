@@ -82,9 +82,9 @@
     const choirDry = c.createGain();
     choirDry.gain.value = 0.7;
     const choirWet = c.createGain();
-    choirWet.gain.value = 0.5;
+    choirWet.gain.value = 0.35;
     const hall = c.createConvolver();
-    hall.buffer = roomImpulse(c, 2.8);
+    hall.buffer = roomImpulse(c, 2.0);
     choir.connect(air);
     air.connect(choirDry).connect(master);
     air.connect(hall).connect(choirWet).connect(master);
@@ -126,8 +126,8 @@
     const peak = velocity * CHOIR_GAIN;
     const env = c.createGain();
     env.gain.setValueAtTime(0, t0);
-    env.gain.linearRampToValueAtTime(peak, t0 + 0.32);
-    env.gain.linearRampToValueAtTime(peak * 0.85, t0 + 1.0);
+    env.gain.linearRampToValueAtTime(peak, t0 + 0.22);
+    env.gain.linearRampToValueAtTime(peak * 0.85, t0 + 0.9);
     env.connect(graph.choir);
 
     const vibrato = c.createOscillator();
@@ -171,9 +171,12 @@
       g: env,
       stop,
       damp(when, release) {
-        const r = Math.max(release, 0.25); // a choir never stops dead
-        env.gain.setTargetAtTime(0, when, r / 4);
-        stop(when + r + 0.3);
+        const r = Math.max(release, 0.18); // a choir never stops dead
+        // Drop whatever swell is still scheduled, or a later ramp would pull the voice back up.
+        if (env.gain.cancelAndHoldAtTime) env.gain.cancelAndHoldAtTime(when);
+        else env.gain.cancelScheduledValues(when);
+        env.gain.setTargetAtTime(0, when, r / 5);
+        stop(when + r + 0.25);
       },
     };
     oscs[0].onended = () => graph.notes.delete(note);
