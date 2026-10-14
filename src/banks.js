@@ -141,7 +141,7 @@
         </span>
       </header>
       <div class="bank-sheet" aria-label="${esc(sheetText(b))}">${sheet}</div>
-      <div class="bank-meta">${bars} bar${bars === 1 ? '' : 's'} · ${b.beats}/4 · ${b.style === 'four' ? 'four to the bar' : 'let ring'}</div>
+      <div class="bank-meta">${bars} bar${bars === 1 ? '' : 's'} · ${b.beats}/4 · ${A.STYLES[b.style] || 'let ring'}</div>
       <div class="bank-knobs">
         <label>Tempo <span class="stepper"><button type="button" data-act="tempo" data-d="-4" aria-label="Slower">−</button><input type="number" min="${MIN_TEMPO}" max="${MAX_TEMPO}" value="${b.tempo}" aria-label="Tempo of bank ${L}, beats per minute"><button type="button" data-act="tempo" data-d="4" aria-label="Faster">+</button></span></label>
         <label>Play <span class="stepper"><button type="button" data-act="rep" data-d="-1" aria-label="Fewer repeats" ${b.repeats <= 1 ? 'disabled' : ''}>−</button><b>×${b.repeats}</b><button type="button" data-act="rep" data-d="1" aria-label="More repeats" ${b.repeats >= MAX_REPEATS ? 'disabled' : ''}>+</button></span></label>
@@ -211,6 +211,7 @@
   });
 
   $('setPlay').addEventListener('click', () => play(setEvents(), `Playing the set: ${setLabel()}.`));
+  $('setStop').addEventListener('click', () => A.stopAll());
   $('setExport').addEventListener('click', openExport);
   $('setReps').addEventListener('click', (e) => {
     const b = e.target.closest('[data-d]');

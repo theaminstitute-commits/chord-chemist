@@ -89,9 +89,16 @@
         <button id="stop" class="btn" type="button">■ Stop</button>
         <label for="voice">Sound <select id="voice"><option value="jazz">Jazz guitar</option><option value="choir">Choir</option></select></label>
         <label for="volume">Volume <input id="volume" type="range" min="0" max="150" value="100"><output id="volumeOut" for="volume">100%</output></label>
-        <label for="tempo">Tempo <input id="tempo" type="range" min="50" max="180" value="88"><output id="tempoOut" for="tempo">88</output></label>
+        <label for="tempo">Tempo <input id="tempo" type="range" min="40" max="240" value="88"><output id="tempoOut" for="tempo">88</output></label>
         <label for="beats">Beats <select id="beats"><option value="2">2</option><option value="4" selected>4</option></select></label>
-        <label for="style">Strum <select id="style"><option value="ring">Let ring</option><option value="four">Four to the bar</option></select></label>
+        <label for="style">Rhythm <select id="style">
+          <option value="ring">Let ring</option>
+          <option value="four">Four to the bar</option>
+          <option value="eighths">Straight 8ths</option>
+          <option value="offbeat">Offbeat 8ths</option>
+          <option value="charleston">Charleston</option>
+          <option value="tresillo">Bossa (3-3-2)</option>
+        </select></label>
         <label for="loop"><input id="loop" type="checkbox"> Loop</label>
         <button id="revoice" class="btn" type="button" title="Re-pick every voicing so the hand moves as little as possible">Smooth voicings</button>
         <button id="clear" class="btn" type="button">Clear chart</button>
@@ -113,6 +120,7 @@
       </div>
       <div class="set-row">
         <button id="setPlay" class="btn btn-play" type="button" title="Play every bank in order, A to D">▶ Play set</button>
+        <button id="setStop" class="btn" type="button">■ Stop</button>
         <label>Whole set <span class="stepper" id="setReps"><button type="button" data-d="-1" aria-label="Fewer set repeats">−</button><b id="setCount">×1</b><button type="button" data-d="1" aria-label="More set repeats">+</button></span></label>
         <button id="setExport" class="btn" type="button" title="Export every bank in order as one MP3 or WAV">⤓ Export set</button>
         <small id="setInfo"></small>

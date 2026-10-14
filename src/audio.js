@@ -317,12 +317,26 @@
     };
   }
 
+  // Rhythms: where in the bar a chord is struck ([beat, velocity]); 'ring' strikes once and holds.
+  // A chord shorter than the bar keeps the hits that fall inside it.
+  const PATTERNS = {
+    four: [[0, 0.45], [1, 0.36], [2, 0.45], [3, 0.36]],
+    eighths: [[0, 0.46], [0.5, 0.3], [1, 0.38], [1.5, 0.3], [2, 0.46], [2.5, 0.3], [3, 0.38], [3.5, 0.3]],
+    offbeat: [[0.5, 0.42], [1.5, 0.42], [2.5, 0.42], [3.5, 0.42]],
+    charleston: [[0, 0.48], [1.5, 0.42]],
+    tresillo: [[0, 0.48], [1.5, 0.42], [3, 0.44]],
+  };
+  const STYLES = {
+    ring: 'let ring', four: 'four to the bar', eighths: 'straight 8ths', offbeat: 'offbeat 8ths',
+    charleston: 'Charleston', tresillo: 'bossa 3-3-2',
+  };
+
   /**
    * Lay a list of events out on a graph from `startAt`. Each event is
    * { midis, beats, tempo?, style?, bar?, count? }: `bar: false` marks a chord that starts
    * mid-bar (a passing chord), so the metronome does not accent it; `count: true` is a
    * count-in bar, which clicks even when the metronome is off (and has no chord).
-   * style 'ring' strums once per chord, 'four' strums every beat (four to the bar).
+   * `style` names a rhythm in PATTERNS ('ring' strikes once per chord and holds).
    * Returns the end time, when each event starts, and the last strum's handle.
    */
   function layout(graph, events, { startAt, tempo = 90, style = 'ring', clicks = false, clickGain = 0.5 }) {
@@ -334,14 +348,13 @@
       const n = Math.max(1, Math.round(ev.beats));
       starts.push(t);
       if (ev.midis && ev.midis.length) {
-        const strums = st === 'four' ? n : 1;
-        for (let k = 0; k < strums; k++) {
-          const at = t + k * beat;
-          if (last) last.damp(at - 0.01, st === 'four' ? 0.05 : 0.12);
-          last = strum(graph, ev.midis, at, {
-            spread: st === 'four' ? 0.012 : 0.024,
-            velocity: st === 'four' ? (k % 2 ? 0.36 : 0.45) : 0.5,
-          });
+        const pattern = PATTERNS[st];
+        let hits = pattern ? pattern.filter(([b]) => b < ev.beats) : [[0, 0.5]];
+        if (!hits.length) hits = [[0, 0.45]];
+        for (const [b, velocity] of hits) {
+          const at = t + b * beat;
+          if (last) last.damp(at - 0.01, pattern ? 0.05 : 0.12);
+          last = strum(graph, ev.midis, at, { spread: pattern ? 0.012 : 0.024, velocity });
         }
       }
       if (clicks || ev.count) {
@@ -490,7 +503,7 @@
 
   const sampleRate = () => (ctx ? ctx.sampleRate : 44100);
 
-  const api = { ensure, playChord, playSequence, stopAll, onStop, setVolume, setVoice, loadSamples, seconds, render, pcm16, encodeWav, sampleRate };
+  const api = { ensure, playChord, playSequence, stopAll, onStop, setVolume, setVoice, loadSamples, seconds, render, pcm16, encodeWav, sampleRate, STYLES };
   global.CCAudio = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);
