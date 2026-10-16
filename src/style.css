@@ -279,6 +279,7 @@ body:has(#splash:not(.gone)) { overflow: hidden; }
   color: var(--accent-text); font: 400 24px/1 var(--display);
   box-shadow: var(--shadow-sm);
 }
+.brand-mark svg { width: 28px; height: 28px; display: block; } /* a conical flask */
 .brand h1 { margin: 0; font: 400 32px/1 var(--display); letter-spacing: 0.04em; color: var(--text); }
 .brand p { margin: 3px 0 0; font: italic 13px/1.2 var(--body); color: var(--muted); }
 .plate .controls { display: flex; flex-wrap: wrap; align-items: end; gap: 10px 14px; margin-left: auto; }
@@ -665,6 +666,7 @@ html.theme-fade *::after {
   body { padding: 8px 10px 10px; font-size: 14px; }
   .plate { padding: 5px 12px; margin-bottom: 8px; gap: 4px 14px; }
   .brand-mark { width: 32px; height: 32px; font-size: 18px; border-radius: 10px; }
+  .brand-mark svg { width: 22px; height: 22px; }
   .brand h1 { font-size: 22px; }
   .brand p { display: none; }
   .plate .controls { gap: 6px 10px; }
