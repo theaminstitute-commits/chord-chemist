@@ -1,25 +1,25 @@
 /* ---------- Design tokens ----------
-   Colours match Guitar Reading Trainer: a warm dark theme with an amber accent by default, a warm
+   Colours match Guitar Reading Trainer: a cool slate dark theme with a blue accent by default, a warm
    light theme with a blue accent, chosen with the Theme switch ("Auto" follows the device).
    Music (chord cards, chord boxes, the progression chart) sits on cream paper in both themes,
    highlighted in blue, the way the trainer shows its staff. */
 :root {
-  --bg: #15130f;
-  --bg-2: #1d1a16;
-  --surface: #26231e;
-  --surface-2: #302c26;
-  --surface-3: #3a352e;
+  --bg: #14181f;
+  --bg-2: #1a1f28;
+  --surface: #212832;
+  --surface-2: #2a323e;
+  --surface-3: #343d4b;
   --border: rgba(255, 255, 255, 0.09);
   --border-strong: rgba(255, 255, 255, 0.18);
-  --text: #f4efe6;
-  --muted: #a69d90;
-  --faint: #6f675d;
-  --accent: #f0b24f;
-  --accent-2: #e39a33;
-  --accent-soft: rgba(240, 178, 79, 0.16);
-  --accent-line: rgba(240, 178, 79, 0.3);
-  --accent-shadow: rgba(240, 178, 79, 0.25);
-  --accent-text: #1a1611;
+  --text: #eef2f7;
+  --muted: #9aa6b8;
+  --faint: #66718a;
+  --accent: #4f8fe8;
+  --accent-2: #3b78d0;
+  --accent-soft: rgba(79, 143, 232, 0.16);
+  --accent-line: rgba(79, 143, 232, 0.32);
+  --accent-shadow: rgba(79, 143, 232, 0.28);
+  --accent-text: #ffffff;
   --good: #5fd39a;
   --good-soft: rgba(95, 211, 154, 0.16);
   --bad: #ff6b57;
@@ -31,7 +31,7 @@
   --wire: #b9b2a6;
   --string: #d9d3c7;
   --marker: #7a6350;
-  --glow: rgba(240, 178, 79, 0.12);
+  --glow: rgba(79, 143, 232, 0.12);
   --radius: 16px;
   --radius-sm: 12px;
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
