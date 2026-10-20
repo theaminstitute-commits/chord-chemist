@@ -12,3 +12,5 @@ It opens in its own window when Chromium or Google Chrome is installed
 (sudo apt install chromium). Otherwise it opens in Firefox. Works offline.
 
 Remove:   sh uninstall.sh   (also deletes saved progressions)
+
+Built and maintained by Dirk Swanepoel.

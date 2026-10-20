@@ -34,7 +34,7 @@ cat > "$PKG/DEBIAN/control" <<CONTROL
 Package: chord-chemist
 Version: $VERSION
 Architecture: all
-Maintainer: Philip van der Walt <theaminstitute@gmail.com>
+Maintainer: Dirk Swanepoel <theaminstitute@gmail.com>
 Installed-Size: $SIZE
 Recommends: chromium | google-chrome-stable | firefox
 Section: sound

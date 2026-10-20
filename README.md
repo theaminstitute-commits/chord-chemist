@@ -2,6 +2,8 @@
 
 **Open the app:** https://theaminstitute-commits.github.io/chord-chemist/
 
+Built and maintained by Dirk Swanepoel.
+
 A guitar chord-progression workbench built on common jazz-harmony rules.
 Pick a progression (ii–V–I, I–vi–ii–V, blues…) and a starting chord. Each bar's directory then
 lists only the chords that are legal in that bar, given the chord that follows:
