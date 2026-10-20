@@ -16,6 +16,9 @@ PKG="$WORK/chord-chemist"
 mkdir -p "$PKG/DEBIAN" "$PKG/usr/bin" "$PKG/usr/share/chord-chemist" \
   "$PKG/usr/share/applications" "$PKG/usr/share/icons/hicolor/scalable/apps"
 install -m 644 "$HTML" "$PKG/usr/share/chord-chemist/chord-chemist.html"
+mkdir -p "$PKG/usr/share/doc/chord-chemist"
+install -m 644 "$ROOT/dist/THIRD-PARTY-NOTICES.txt" "$PKG/usr/share/doc/chord-chemist/THIRD-PARTY-NOTICES.txt"
+install -m 644 "$ROOT/LICENSE.md" "$PKG/usr/share/doc/chord-chemist/LICENSE.md"
 install -m 755 "$ROOT/linux/chord-chemist.sh" "$PKG/usr/bin/chord-chemist"
 install -m 644 "$ROOT/linux/chord-chemist.svg" "$PKG/usr/share/icons/hicolor/scalable/apps/chord-chemist.svg"
 cat > "$PKG/usr/share/applications/chord-chemist.desktop" <<DESKTOP

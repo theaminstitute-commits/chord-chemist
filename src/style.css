@@ -624,7 +624,28 @@ select {
   margin: 14px auto 0; max-width: 72ch; text-align: center;
   font: italic 12px/1.5 var(--body); color: var(--faint);
 }
-.credits a { color: var(--muted); }
+.credits a, .credits .link { color: var(--muted); }
+.credits .link {
+  border: 0; background: none; padding: 0; margin-left: 4px;
+  font: inherit; text-decoration: underline; cursor: pointer;
+}
+
+/* ---------- licences dialog ---------- */
+.licences {
+  border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface); color: var(--text);
+  padding: 0; width: min(760px, calc(100vw - 32px)); max-height: min(80vh, 760px); box-shadow: var(--shadow);
+}
+.licences[open] { display: flex; flex-direction: column; }
+.licences::backdrop { background: rgba(0, 0, 0, 0.55); }
+.licences-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+}
+.licences-head h2 { margin: 0; font: 400 22px/1 var(--display); letter-spacing: 0.03em; }
+.licences-text {
+  margin: 0; padding: 14px 16px; overflow: auto; flex: 1 1 auto;
+  font: 12px/1.45 ui-monospace, Consolas, "Courier New", monospace; white-space: pre-wrap; color: var(--text);
+}
 
 /* ---------- drag ghost ---------- */
 .ghost {

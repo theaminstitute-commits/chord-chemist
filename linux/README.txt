@@ -16,3 +16,4 @@ Remove:   sh uninstall.sh   (also deletes saved progressions)
 Built and maintained by Dirk Swanepoel.
 
 Free for non-commercial use (CC BY-NC 4.0); commercial use needs written permission.
+Licences: see THIRD-PARTY-NOTICES.txt and LICENSE.md (also under "Licences" in the app).

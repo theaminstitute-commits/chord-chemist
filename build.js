@@ -36,7 +36,22 @@ function samplesScript() {
   return `<script>window.CCSamples = ${JSON.stringify({ name: 'FluidR3 GM jazz guitar (CC BY 3.0)', notes })};</script>`;
 }
 
+// Licences and third-party notices: our summary, then the full LGPL, GPL and OFL texts.
+// Shown in the app's Licences dialog and shipped beside the app in the Linux packages.
+function noticesText() {
+  const lic = (f) => fs.readFileSync(path.join(__dirname, 'licences', f), 'utf8').replace(/\r\n/g, '\n');
+  const ofl = lic('OFL-1.1.txt');
+  const rule = (title) => `\n${'='.repeat(78)}\n${title}\n${'='.repeat(78)}\n\n`;
+  return lic('NOTICES.txt') +
+    rule('GNU LESSER GENERAL PUBLIC LICENSE, VERSION 3 (lamejs)') + lic('LGPL-3.0.txt') +
+    rule('GNU GENERAL PUBLIC LICENSE, VERSION 3 (incorporated by the LGPL)') + lic('GPL-3.0.txt') +
+    rule('SIL OPEN FONT LICENSE, VERSION 1.1 (fonts)') + ofl.slice(ofl.indexOf('This Font Software is licensed'));
+}
+
 (async () => {
+  const notices = noticesText();
+  fs.mkdirSync(DIST, { recursive: true });
+  fs.writeFileSync(path.join(DIST, 'THIRD-PARTY-NOTICES.txt'), notices);
   // lamejs (LGPL-3.0, see vendor/lamejs/LICENSE) encodes the exported backing tracks as MP3.
   const lame = fs.readFileSync(path.join(__dirname, 'vendor', 'lamejs', 'lame.min.js'), 'utf8');
   const scripts = [samplesScript(), `<script>\n${lame}\n</script>`]
@@ -48,7 +63,8 @@ function samplesScript() {
     .replace(/<!--BUBBLE-->/g, png('bubble.png'))
     .replace(/<!--DROP-->/g, png('drop.png'))
     .replace(/<!--FLAME-->/g, png('flame.png'))
-    .replace('<!--SCRIPTS-->', scripts);
+    .replace('<!--NOTICES-->', () => notices.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])))
+    .replace('<!--SCRIPTS-->', () => scripts);
   fs.mkdirSync(DIST, { recursive: true });
 
   let fontCss = '';

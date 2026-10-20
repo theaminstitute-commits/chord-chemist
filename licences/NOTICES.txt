@@ -1,0 +1,35 @@
+CHORD CHEMIST - LICENCES AND THIRD-PARTY NOTICES
+================================================
+
+Chord Chemist
+  Copyright (c) 2026 Dirk Swanepoel and contributors.
+  Licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0):
+  https://creativecommons.org/licenses/by-nc/4.0/ (legal code: .../by-nc/4.0/legalcode)
+  Commercial use needs written permission from the maintainer (theaminstitute@gmail.com).
+  The third-party material below keeps its own licence.
+
+Jazz guitar samples
+  "Electric Guitar (jazz)" from the FluidR3 GM SoundFont by Frank Wen, as rendered to
+  per-note MP3 files by the midi-js-soundfonts project:
+  https://github.com/gleitz/midi-js-soundfonts
+  Licence: Creative Commons Attribution 3.0 Unported (CC BY 3.0):
+  https://creativecommons.org/licenses/by/3.0/
+  Changes: the files are embedded unchanged; during playback the app skips each sample's
+  leading silence and fades out its last 0.4 seconds.
+
+MP3 encoder: lamejs 1.2.1
+  A JavaScript port of LAME (https://lame.sourceforge.io), by Alex Zhukov and contributors:
+  https://github.com/zhuker/lamejs (source code of the exact version: npm package
+  lamejs@1.2.1, https://www.npmjs.com/package/lamejs/v/1.2.1).
+  Licence: GNU Lesser General Public License version 3 (LGPL-3.0), which incorporates the
+  GNU General Public License version 3 (GPL-3.0). Both texts follow below.
+  The library is included unmodified, in its own script block, separate from the app's
+  code, so it can be replaced with another build of lamejs.
+
+Fonts
+  Limelight (c) Eben Sorkin; Special Elite (c) Astigmatic; VT323 (c) Peter Hull;
+  Libre Caslon Text (c) Impallari Type. All via Google Fonts.
+  Licence: SIL Open Font License, Version 1.1 (text below). The fonts are embedded in the
+  app; they are not sold separately.
+
+

@@ -733,6 +733,19 @@
   });
   markTheme(savedTheme());
 
+  // ---------- licences ----------
+
+  const licences = $('licencesDlg');
+  $('licencesOpen').addEventListener('click', () => {
+    if (typeof licences.showModal === 'function') licences.showModal();
+    else licences.setAttribute('open', '');
+    licences.querySelector('.licences-text').scrollTop = 0;
+  });
+  $('licencesClose').addEventListener('click', () => {
+    if (typeof licences.close === 'function') licences.close();
+    else licences.removeAttribute('open');
+  });
+
   // ---------- the chart, for the backing-track banks (banks.js) ----------
 
   const api = {
