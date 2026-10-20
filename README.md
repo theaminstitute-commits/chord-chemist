@@ -2,7 +2,8 @@
 
 **Open the app:** https://theaminstitute-commits.github.io/chord-chemist/
 
-Built and maintained by Dirk Swanepoel.
+Built and maintained by Dirk Swanepoel. Free for **non-commercial** use under
+[CC BY-NC 4.0](LICENSE.md); commercial use needs written permission.
 
 A guitar chord-progression workbench built on common jazz-harmony rules.
 Pick a progression (ii–V–I, I–vi–ii–V, blues…) and a starting chord. Each bar's directory then

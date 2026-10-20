@@ -20,3 +20,5 @@ installed (sudo apt install chromium); otherwise it opens in Firefox.
 Works offline. Saved progressions stay on this computer.
 
 Built and maintained by Dirk Swanepoel.
+
+Free for non-commercial use (CC BY-NC 4.0); commercial use needs written permission.

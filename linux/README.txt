@@ -14,3 +14,5 @@ It opens in its own window when Chromium or Google Chrome is installed
 Remove:   sh uninstall.sh   (also deletes saved progressions)
 
 Built and maintained by Dirk Swanepoel.
+
+Free for non-commercial use (CC BY-NC 4.0); commercial use needs written permission.
